@@ -3,91 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub</title>
+    <title>FamilyHub v29</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #030712; --card: #111827; --accent: #38bdf8; --text: #f3f4f6; --red: #f87171; --green: #4ade80; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); letter-spacing: -0.02em; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); letter-spacing: -0.03em; }
         
-        #loader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
-        @keyframes s { to { transform: rotate(360deg); } }
+        /* КРАСИВЫЙ ЖИРНЫЙ ШРИФТ */
+        h1, h2, h3, .btn, .card-label, #clock, b { font-weight: 900 !important; }
 
-        #auth-screen, #app-screen { display: none; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; padding-top: 70px; }
-
-        .card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
-        .card-label { font-size: 11px; font-weight: 900; opacity: 0.5; margin-bottom: 10px; text-transform: uppercase; color: var(--accent); letter-spacing: 0.05em; }
+        .container { max-width: 500px; margin: 0 auto; padding: 80px 20px 20px; }
+        .card { background: var(--card); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .card-label { font-size: 12px; opacity: 0.4; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; display: block; }
         
-        h1, h2, h3 { font-weight: 900; }
-        input { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; }
-        .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 16px; width: 100%; font-weight: 900; cursor: pointer; font-size: 15px; }
+        input { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 16px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; }
+        .btn { background: var(--accent); color: #000; border: none; padding: 18px; border-radius: 18px; width: 100%; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn:active { transform: scale(0.97); }
         
-        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(3,7,18,0.7); backdrop-filter: blur(15px); z-index: 1000; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; height: 70px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-weight: 900; border: 2px solid var(--accent); color: var(--accent); cursor: pointer; }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(3,7,18,0.8); backdrop-filter: blur(15px); z-index: 1000; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; height: 70px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .user-icon { width: 46px; height: 46px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; border: 2.5px solid var(--accent); color: var(--accent); cursor: pointer; font-size: 18px; }
 
-        /* Стиль списка пользователей с кнопкой удаления */
-        .u-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); }
-        .u-info b { display: block; font-weight: 800; font-size: 14px; }
-        .u-info span { font-size: 12px; opacity: 0.5; }
-        .u-del { color: var(--red); font-weight: 900; font-size: 12px; cursor: pointer; padding: 5px 10px; }
+        .u-item { display: flex; justify-content: space-between; align-items: center; background: #000; padding: 15px; border-radius: 16px; margin-bottom: 8px; border: 1px solid #1f2937; }
+        .u-del { color: var(--red); font-size: 12px; cursor: pointer; padding: 5px; }
 
         .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: none; padding: 25px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
-<div id="loader"><div class="spin"></div></div>
+<div id="loader" style="position:fixed; inset:0; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center;"><div style="width:40px; height:40px; border:4px solid rgba(255,255,255,0.1); border-top-color:var(--accent); border-radius:50%; animation:s 1s linear infinite;"></div></div>
+<style>@keyframes s { to { transform: rotate(360deg); } }</style>
 
-<div id="auth-screen">
-    <div class="container" style="text-align:center; padding-top: 20vh;">
-        <h1 style="font-size: 48px; margin: 0;">Family</h1>
-        <p style="opacity: 0.4; font-weight: 800; margin-bottom: 30px;">PRIVATE HUB</p>
+<div id="auth-screen" style="display:none; padding-top:15vh; text-align:center;">
+    <h1 style="font-size:56px; margin:0;">Family</h1>
+    <p style="opacity:0.3; margin-bottom:40px;">PRIVATE HUB v29</p>
+    <div style="max-width:320px; margin:0 auto;">
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Пароль">
         <button class="btn" onclick="handleAuth()">ВОЙТИ</button>
     </div>
 </div>
 
-<div id="app-screen">
+<div id="app-screen" style="display:none;">
     <div class="top-bar">
-        <div style="font-weight: 900;">
-            <span style="color:var(--green)">+ <span id="v-inc">0</span></span>
-            <span style="color:var(--red); margin-left:10px">- <span id="v-exp">0</span></span>
-        </div>
+        <div style="font-size:18px;"><span style="color:var(--green)">+ <span id="v-inc">0</span></span></div>
         <div id="me-avatar" class="user-icon" onclick="openM('m-settings')">👤</div>
     </div>
 
     <div class="container">
-        <div style="margin-bottom: 20px;">
-            <div id="clock" style="font-size: 42px; font-weight: 900;">00:00</div>
-            <div id="me-name" style="font-weight: 800; color: var(--accent);">Загрузка...</div>
+        <div style="margin-bottom:30px;">
+            <div id="clock" style="font-size:52px; letter-spacing:-2px;">00:00</div>
+            <div id="me-name" style="color:var(--accent); font-size:20px;">...</div>
         </div>
-        <p style="opacity:0.5; font-size:12px; font-weight:800">ПАНЕЛЬ УПРАВЛЕНИЯ ГОТОВА</p>
+
+        <div class="card">
+            <span class="card-label">Добавить в систему</span>
+            <input type="email" id="quick-email" placeholder="Email нового участника">
+            <input type="text" id="quick-name" placeholder="Имя">
+            <button class="btn" onclick="directInvite()">ЗАРЕГИСТРИРОВАТЬ</button>
+        </div>
     </div>
 </div>
 
 <div id="m-settings" class="modal">
-    <div style="float:right; font-size:32px; font-weight:900;" onclick="closeM('m-settings')">×</div>
-    <h2 style="font-size: 28px; margin-bottom: 20px;">Настройки</h2>
-    
-    <div id="admin-panel" style="display:none">
+    <div style="float:right; font-size:40px;" onclick="closeM('m-settings')">×</div>
+    <h2>Настройки</h2>
+    <div id="admin-panel" style="display:none;">
         <div class="card">
-            <div class="card-label">Добавить участника</div>
-            <input type="email" id="n-email" placeholder="Email">
-            <input type="text" id="n-name" placeholder="Имя">
-            <button class="btn" onclick="inviteUser()">ДОБАВИТЬ</button>
-        </div>
-
-        <div class="card">
-            <div class="card-label">Участники семьи</div>
+            <span class="card-label">Управление семьей</span>
             <div id="family-list"></div>
         </div>
     </div>
-    
-    <button class="btn" onclick="closeM('m-settings')" style="background: #1f2937; color: #fff;">ЗАКРЫТЬ</button>
+    <button class="btn" onclick="forceLogout()" style="background:var(--red); color:#fff; margin-top:20px;">ВЫЙТИ</button>
 </div>
 
 <script>
@@ -95,49 +84,50 @@
     const SUPABASE_KEY = "sb_publishable_sDpVaDfmXJ57QaQTeoJ-dQ_YuDonR5J";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let state = { users: [], messages: [], tasks: [], inc: 0, exp: 0 };
+    let state = { users: [] };
     let me = null;
 
-    // --- ЛОГИКА ДОБАВЛЕНИЯ (ТОЧНО КАК В РАБОЧЕЙ ВЕРСИИ) ---
-    async function inviteUser() {
-        const e = document.getElementById('n-email').value.toLowerCase().trim();
-        const n = document.getElementById('n-name').value.trim();
-        if(!e || !n) return;
+    // ГЛАВНАЯ ФУНКЦИЯ ДОБАВЛЕНИЯ
+    async function directInvite() {
+        const email = document.getElementById('quick-email').value.toLowerCase().trim();
+        const name = document.getElementById('quick-name').value.trim();
+        if(!email || !name) return alert("Заполните поля");
 
         try {
+            // 1. Обновляем локальный список
             if(!state.users) state.users = [];
-            state.users.push({email: e, name: n, role: 'User'});
+            if(state.users.find(u => u.email === email)) return alert("Уже есть");
             
-            // 1. Сохраняем в общий стейт
-            await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
-            // 2. Создаем профиль в БД
-            await sb.from('family_v10_profiles').upsert([{ email: e, name: n, role: 'User' }], { onConflict: 'email' });
+            state.users.push({ email, name, role: 'User' });
 
+            // 2. Пишем СРАЗУ в две таблицы (для надежности)
+            const { error: err1 } = await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
+            const { error: err2 } = await sb.from('family_v10_profiles').upsert([{ email, name, role: 'User' }], { onConflict: 'email' });
+
+            if(err1 || err2) throw (err1 || err2);
+
+            alert("Успешно! Теперь " + name + " может войти.");
+            document.getElementById('quick-email').value = '';
+            document.getElementById('quick-name').value = '';
             render();
-            document.getElementById('n-email').value = '';
-            document.getElementById('n-name').value = '';
-            alert("Пользователь добавлен!");
-        } catch (err) {
-            alert("Ошибка базы данных");
+        } catch (e) {
+            console.error(e);
+            alert("Ошибка базы. Выполнили SQL из Шага 1?");
         }
     }
 
-    // --- ЛОГИКА УДАЛЕНИЯ ---
     async function removeUser(email) {
-        if(confirm(`Удалить доступ для ${email}?`)) {
-            state.users = state.users.filter(u => u.email !== email);
-            await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
-            render();
-        }
+        if(!confirm("Удалить доступ?")) return;
+        state.users = state.users.filter(u => u.email !== email);
+        await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
+        render();
     }
 
-    // --- ИНИЦИАЛИЗАЦИЯ И ВХОД ---
     async function init(session) {
         const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', 'main_state').maybeSingle();
         if(d) state = d.payload;
 
         let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
-        
         if(!p) {
             const email = session.user.email.toLowerCase();
             const match = state.users?.find(u => u.email === email);
@@ -147,15 +137,12 @@
                     id: session.user.id, email, name: match ? match.name : email.split('@')[0], role 
                 }], { onConflict: 'email' }).select().single();
                 p = nP;
-            } else {
-                alert("Доступ запрещен");
-                return sb.auth.signOut();
-            }
+            } else { alert("Доступ закрыт"); return forceLogout(); }
         }
         me = p;
-        render();
         document.getElementById('loader').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
+        render();
     }
 
     function render() {
@@ -163,12 +150,11 @@
         document.getElementById('me-name').innerText = me.name;
         document.getElementById('me-avatar').innerText = me.name[0].toUpperCase();
         
-        // Показываем админку
         if(me.role === 'Admin') {
             document.getElementById('admin-panel').style.display = 'block';
-            document.getElementById('family-list').innerHTML = state.users.map(u => `
+            document.getElementById('family-list').innerHTML = (state.users || []).map(u => `
                 <div class="u-item">
-                    <div class="u-info"><b>${u.name}</b><span>${u.email}</span></div>
+                    <div><b>${u.name}</b><br><span style="opacity:0.5; font-size:12px">${u.email}</span></div>
                     ${u.role !== 'Admin' ? `<div class="u-del" onclick="removeUser('${u.email}')">УДАЛИТЬ</div>` : ''}
                 </div>
             `).join('');
@@ -183,12 +169,12 @@
 
     function openM(id) { document.getElementById(id).style.display = 'block'; }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
+    async function forceLogout() { await sb.auth.signOut(); location.reload(); }
 
     sb.auth.getSession().then(({data}) => {
         if(data.session) init(data.session);
         else document.getElementById('loader').style.display = 'none', document.getElementById('auth-screen').style.display = 'block';
     });
-
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
 </script>
 </body>
