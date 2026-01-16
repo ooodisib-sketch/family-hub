@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v23.0</title>
+    <title>FamilyHub v24.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -221,14 +221,18 @@
         await sync();
     }
 
-    // ИСПРАВЛЕНО: Добавление пользователя в таблицу профайлов
+    // ИСПРАВЛЕНО: Админ теперь реально создает запись в БД профилей
     async function inviteUser() {
         const e = document.getElementById('n-email').value, n = document.getElementById('n-name').value;
         if(e && n) { 
-            state.users.push({email: e, name: n, role: 'User'}); 
-            // Мы не можем создать пароль за пользователя, но мы "бронируем" его email в базе профайлов
-            // Чтобы когда он залогинится, система его узнала
-            await sb.from('family_v10_profiles').upsert([{ email: e, name: n, role: 'User' }], { onConflict: 'email' });
+            const cleanEmail = e.toLowerCase().trim();
+            state.users.push({email: cleanEmail, name: n, role: 'User'}); 
+            
+            // Записываем профиль в БД заранее
+            await sb.from('family_v10_profiles').upsert([
+                { email: cleanEmail, name: n, role: 'User' }
+            ], { onConflict: 'email' });
+
             await sync(); 
             render(); 
             document.getElementById('n-email').value = '';
@@ -262,13 +266,13 @@
         `).join('');
         document.getElementById('chat-list').scrollTop = document.getElementById('chat-list').scrollHeight;
 
-        // ИСПРАВЛЕНО: Календарь Пн-Вс
+        // Календарь Пн-Вс
         document.getElementById('month-name').innerText = monthName;
         const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
         let cal = weekDays.map(d => `<div class="cal-header">${d}</div>`).join('');
         
-        let firstDay = new Date(year, month, 1).getDay(); // 0 (Вс) - 6 (Сб)
-        let offset = firstDay === 0 ? 6 : firstDay - 1; // Превращаем в Пн=0, Вс=6
+        let firstDay = new Date(year, month, 1).getDay(); 
+        let offset = firstDay === 0 ? 6 : firstDay - 1; 
 
         for(let i=0; i<offset; i++) cal += `<div class="day empty"></div>`;
         for(let d=1; d<=daysInMonth; d++) {
@@ -315,20 +319,17 @@
 
         let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
         
-        // Если профиля по ID нет, попробуем найти по Email (созданный админом)
         if(!p) {
-            let { data: pByEmail } = await sb.from('family_v10_profiles').select('*').eq('email', session.user.email).maybeSingle();
+            let { data: pByEmail } = await sb.from('family_v10_profiles').select('*').eq('email', session.user.email.toLowerCase()).maybeSingle();
             if(pByEmail) {
-                // Привязываем существующий профиль к новому Auth ID
-                const { data: updatedP } = await sb.from('family_v10_profiles').update({ id: session.user.id }).eq('email', session.user.email).select().single();
+                const { data: updatedP } = await sb.from('family_v10_profiles').update({ id: session.user.id }).eq('email', session.user.email.toLowerCase()).select().single();
                 p = updatedP;
             } else {
-                // Полностью новый юзер
                 const isF = state.users.length === 0;
                 const name = session.user.email.split('@')[0];
-                const { data: nP } = await sb.from('family_v10_profiles').insert([{ id: session.user.id, name, email: session.user.email, role: isF ? 'Admin' : 'User' }]).select().single();
+                const { data: nP } = await sb.from('family_v10_profiles').insert([{ id: session.user.id, name, email: session.user.email.toLowerCase(), role: isF ? 'Admin' : 'User' }]).select().single();
                 p = nP;
-                if(isF) { state.users.push({email: session.user.email, name, role: 'Admin'}); await sync(false); }
+                if(isF) { state.users.push({email: session.user.email.toLowerCase(), name, role: 'Admin'}); await sync(false); }
             }
         }
         me = p;
