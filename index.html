@@ -3,63 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v28.0</title>
+    <title>FamilyHub</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #030712; --card: #111827; --accent: #38bdf8; --text: #f3f4f6; --red: #f87171; --green: #4ade80; --yellow: #fbbf24; --pink: #f472b6; }
-        body.theme-blue { --accent: #38bdf8; --bg: #030712; }
-        body.theme-purple { --accent: #bc61ff; --bg: #0d0118; }
-        body.theme-red { --accent: #ff4d4d; --bg: #110000; }
+        :root { --bg: #030712; --card: #111827; --accent: #38bdf8; --text: #f3f4f6; --red: #f87171; --green: #4ade80; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); letter-spacing: -0.02em; }
         
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); overflow-x: hidden; letter-spacing: -0.02em; }
-        
-        #loader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #loader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
         @keyframes s { to { transform: rotate(360deg); } }
 
-        #auth-screen, #app-screen { display: none; padding: 20px; min-height: 100vh; }
-        .container { max-width: 500px; margin: 0 auto; padding-top: 75px; }
+        #auth-screen, #app-screen { display: none; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; padding-top: 70px; }
 
-        .card { background: var(--card); border-radius: 24px; padding: 22px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .card-label { font-size: 11px; font-weight: 800; opacity: 0.5; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+        .card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .card-label { font-size: 11px; font-weight: 900; opacity: 0.5; margin-bottom: 10px; text-transform: uppercase; color: var(--accent); letter-spacing: 0.05em; }
         
-        input { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; transition: 0.3s; }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        h1, h2, h3 { font-weight: 900; }
+        input { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; }
+        .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 16px; width: 100%; font-weight: 900; cursor: pointer; font-size: 15px; }
         
-        .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 18px; width: 100%; font-weight: 800; cursor: pointer; font-size: 15px; active { transform: scale(0.98); } }
-        
-        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(3, 7, 18, 0.8); backdrop-filter: blur(20px); z-index: 1000; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; height: 70px; }
-        .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2px solid var(--accent); cursor: pointer; font-weight: 800; color: var(--accent); }
-        
-        .chat-box { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-        .msg { background: rgba(255,255,255,0.05); padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.4; width: fit-content; max-width: 85%; }
-        .msg.me { align-self: flex-end; background: var(--accent); color: #000; font-weight: 700; border-bottom-right-radius: 4px; }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(3,7,18,0.7); backdrop-filter: blur(15px); z-index: 1000; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; height: 70px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-weight: 900; border: 2px solid var(--accent); color: var(--accent); cursor: pointer; }
 
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 15px; }
-        .cal-header { text-align: center; font-size: 11px; font-weight: 800; opacity: 0.4; padding-bottom: 8px; }
-        .day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .day.active { background: var(--accent); color: #000; font-weight: 800; transform: scale(1.1); box-shadow: 0 5px 15px rgba(56,189,248,0.4); }
-        .day.empty { background: transparent; cursor: default; }
-        .dot { position: absolute; bottom: 5px; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
-        .day.active .dot { background: #000; }
+        /* Стиль списка пользователей с кнопкой удаления */
+        .u-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 14px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .u-info b { display: block; font-weight: 800; font-size: 14px; }
+        .u-info span { font-size: 12px; opacity: 0.5; }
+        .u-del { color: var(--red); font-weight: 900; font-size: 12px; cursor: pointer; padding: 5px 10px; }
 
-        .sticker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        .sticker { padding: 15px; border-radius: 12px; font-weight: 700; font-size: 13px; min-height: 100px; position: relative; color: #000; box-shadow: 6px 6px 0 rgba(0,0,0,0.2); word-break: break-word; }
-        
         .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: none; padding: 25px; overflow-y: auto; }
-        .upcoming-item { padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-left: 3px solid var(--accent); font-size: 14px; font-weight: 600; }
     </style>
 </head>
-<body class="theme-blue">
+<body>
 
 <div id="loader"><div class="spin"></div></div>
 
 <div id="auth-screen">
-    <div class="container" style="padding-top:15vh; text-align:center">
-        <h1 style="color:var(--accent); font-size:54px; margin:0; font-weight:900">Family</h1>
-        <p style="opacity:0.4; margin-bottom:30px; font-weight:600">v28.0 Private Hub</p>
+    <div class="container" style="text-align:center; padding-top: 20vh;">
+        <h1 style="font-size: 48px; margin: 0;">Family</h1>
+        <p style="opacity: 0.4; font-weight: 800; margin-bottom: 30px;">PRIVATE HUB</p>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="pass" placeholder="Пароль">
         <button class="btn" onclick="handleAuth()">ВОЙТИ</button>
@@ -68,82 +53,41 @@
 
 <div id="app-screen">
     <div class="top-bar">
-        <div style="font-weight:900; font-size:16px">
+        <div style="font-weight: 900;">
             <span style="color:var(--green)">+ <span id="v-inc">0</span></span>
-            <span style="color:var(--red); margin-left:14px">- <span id="v-exp">0</span></span>
+            <span style="color:var(--red); margin-left:10px">- <span id="v-exp">0</span></span>
         </div>
         <div id="me-avatar" class="user-icon" onclick="openM('m-settings')">👤</div>
     </div>
 
     <div class="container">
-        <div style="margin-bottom:25px">
-            <div id="clock" style="font-size:48px; font-weight:900; letter-spacing:-2px">00:00</div>
-            <div id="me-name" style="font-weight:800; color:var(--accent); font-size:18px">...</div>
+        <div style="margin-bottom: 20px;">
+            <div id="clock" style="font-size: 42px; font-weight: 900;">00:00</div>
+            <div id="me-name" style="font-weight: 800; color: var(--accent);">Загрузка...</div>
         </div>
-
-        <div class="card">
-            <div class="card-label">Ближайшие планы</div>
-            <div id="upcoming-list"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-label">Бюджет</div>
-            <div style="display:flex; gap:8px">
-                <input type="number" id="q-amt" placeholder="₽" style="width:110px; margin:0">
-                <input type="text" id="q-txt" placeholder="На что..." style="margin:0">
-            </div>
-            <div style="display:flex; gap:10px; margin-top:12px">
-                <button class="btn" style="background:var(--red); color:#fff" onclick="money(-1)">РАСХОД</button>
-                <button class="btn" style="background:var(--green)" onclick="money(1)">ДОХОД</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-label">Чат семьи</div>
-            <div id="chat-list" class="chat-box"></div>
-            <div style="display:flex; gap:8px">
-                <input type="text" id="chat-in" placeholder="Ваше сообщение..." style="margin:0">
-                <button class="btn" style="width:65px" onclick="sendMsg()">></button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-label"><span id="month-name">...</span> — <span id="sel-day-txt"></span> число</div>
-            <div class="cal-grid" id="cal-days"></div>
-            <div id="day-tasks" style="margin-bottom:15px; font-weight:600"></div>
-            <div style="display:flex; gap:8px">
-                <input type="text" id="t-in" placeholder="Новое дело..." style="margin:0">
-                <button class="btn" style="width:65px" onclick="addTask()">OK</button>
-            </div>
-        </div>
-
-        <div class="card" style="background:transparent; border:none; padding:0">
-            <div class="card-label">Доска заметок</div>
-            <input type="text" id="s-in" placeholder="Напиши заметку..." style="margin:0">
-            <button class="btn" style="background:var(--text); color:#000; margin-top:10px; font-weight:900" onclick="addSticker()">ПРИКЛЕИТЬ</button>
-            <div id="stickers-list" class="sticker-grid"></div>
-        </div>
-
-        <button class="btn" onclick="forceLogout()" style="background:none; border:1px solid rgba(255,255,255,0.1); color:var(--red); margin:40px 0 80px">ВЫЙТИ ИЗ СИСТЕМЫ</button>
+        <p style="opacity:0.5; font-size:12px; font-weight:800">ПАНЕЛЬ УПРАВЛЕНИЯ ГОТОВА</p>
     </div>
 </div>
 
 <div id="m-settings" class="modal">
-    <div style="float:right; font-size:38px; font-weight:800" onclick="closeM('m-settings')">×</div>
-    <h2 style="font-weight:900; font-size:28px">Настройки</h2>
+    <div style="float:right; font-size:32px; font-weight:900;" onclick="closeM('m-settings')">×</div>
+    <h2 style="font-size: 28px; margin-bottom: 20px;">Настройки</h2>
     
     <div id="admin-panel" style="display:none">
         <div class="card">
-            <div class="card-label">Добавить в семью</div>
+            <div class="card-label">Добавить участника</div>
             <input type="email" id="n-email" placeholder="Email">
             <input type="text" id="n-name" placeholder="Имя">
-            <button class="btn" onclick="inviteUser()">ЗАРЕГИСТРИРОВАТЬ</button>
-            
-            <div class="card-label" style="margin-top:25px">Управление доступом</div>
+            <button class="btn" onclick="inviteUser()">ДОБАВИТЬ</button>
+        </div>
+
+        <div class="card">
+            <div class="card-label">Участники семьи</div>
             <div id="family-list"></div>
         </div>
     </div>
-    <button class="btn" onclick="closeM('m-settings')">ЗАКРЫТЬ</button>
+    
+    <button class="btn" onclick="closeM('m-settings')" style="background: #1f2937; color: #fff;">ЗАКРЫТЬ</button>
 </div>
 
 <script>
@@ -151,12 +95,85 @@
     const SUPABASE_KEY = "sb_publishable_sDpVaDfmXJ57QaQTeoJ-dQ_YuDonR5J";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], users: [] };
+    let state = { users: [], messages: [], tasks: [], inc: 0, exp: 0 };
     let me = null;
-    let selDay = new Date().getDate();
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
-    async function forceLogout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
+    // --- ЛОГИКА ДОБАВЛЕНИЯ (ТОЧНО КАК В РАБОЧЕЙ ВЕРСИИ) ---
+    async function inviteUser() {
+        const e = document.getElementById('n-email').value.toLowerCase().trim();
+        const n = document.getElementById('n-name').value.trim();
+        if(!e || !n) return;
+
+        try {
+            if(!state.users) state.users = [];
+            state.users.push({email: e, name: n, role: 'User'});
+            
+            // 1. Сохраняем в общий стейт
+            await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
+            // 2. Создаем профиль в БД
+            await sb.from('family_v10_profiles').upsert([{ email: e, name: n, role: 'User' }], { onConflict: 'email' });
+
+            render();
+            document.getElementById('n-email').value = '';
+            document.getElementById('n-name').value = '';
+            alert("Пользователь добавлен!");
+        } catch (err) {
+            alert("Ошибка базы данных");
+        }
+    }
+
+    // --- ЛОГИКА УДАЛЕНИЯ ---
+    async function removeUser(email) {
+        if(confirm(`Удалить доступ для ${email}?`)) {
+            state.users = state.users.filter(u => u.email !== email);
+            await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
+            render();
+        }
+    }
+
+    // --- ИНИЦИАЛИЗАЦИЯ И ВХОД ---
+    async function init(session) {
+        const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', 'main_state').maybeSingle();
+        if(d) state = d.payload;
+
+        let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
+        
+        if(!p) {
+            const email = session.user.email.toLowerCase();
+            const match = state.users?.find(u => u.email === email);
+            if(match || !state.users || state.users.length === 0) {
+                const role = (!state.users || state.users.length === 0) ? 'Admin' : 'User';
+                const { data: nP } = await sb.from('family_v10_profiles').upsert([{ 
+                    id: session.user.id, email, name: match ? match.name : email.split('@')[0], role 
+                }], { onConflict: 'email' }).select().single();
+                p = nP;
+            } else {
+                alert("Доступ запрещен");
+                return sb.auth.signOut();
+            }
+        }
+        me = p;
+        render();
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+    }
+
+    function render() {
+        if(!me) return;
+        document.getElementById('me-name').innerText = me.name;
+        document.getElementById('me-avatar').innerText = me.name[0].toUpperCase();
+        
+        // Показываем админку
+        if(me.role === 'Admin') {
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('family-list').innerHTML = state.users.map(u => `
+                <div class="u-item">
+                    <div class="u-info"><b>${u.name}</b><span>${u.email}</span></div>
+                    ${u.role !== 'Admin' ? `<div class="u-del" onclick="removeUser('${u.email}')">УДАЛИТЬ</div>` : ''}
+                </div>
+            `).join('');
+        }
+    }
 
     async function handleAuth() {
         const e = document.getElementById('email').value, p = document.getElementById('pass').value;
@@ -164,127 +181,14 @@
         if(!error) init(data.session); else alert("Ошибка входа");
     }
 
-    async function sync() { 
-        await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state }); 
-        audio.play().catch(()=>{});
-    }
-
-    async function inviteUser() {
-        const e = document.getElementById('n-email').value.toLowerCase().trim();
-        const n = document.getElementById('n-name').value.trim();
-        if(!e || !n) return;
-        
-        if(!state.users) state.users = [];
-        state.users.push({email: e, name: n, role: 'User'});
-        
-        await sb.from('family_v10_profiles').upsert([{ email: e, name: n, role: 'User' }], { onConflict: 'email' });
-        await sync(); render();
-        document.getElementById('n-email').value = ''; document.getElementById('n-name').value = '';
-    }
-
-    async function removeUser(email) {
-        if(confirm(`Удалить ${email} из семьи?`)) {
-            state.users = state.users.filter(u => u.email !== email);
-            await sync(); render();
-        }
-    }
-
-    async function init(session) {
-        if(!session) return;
-        const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', 'main_state').maybeSingle();
-        if(d) state = d.payload;
-
-        let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
-        if(!p) {
-            const email = session.user.email.toLowerCase();
-            const match = state.users?.find(u => u.email === email);
-            const isFirst = (!state.users || state.users.length === 0);
-
-            if(isFirst || match) {
-                const name = match ? match.name : email.split('@')[0];
-                const role = isFirst ? 'Admin' : 'User';
-                const { data: nP } = await sb.from('family_v10_profiles').upsert([{ id: session.user.id, name, email, role }], { onConflict: 'email' }).select().single();
-                p = nP;
-                if(isFirst) { state.users = [{email, name, role: 'Admin'}]; await sync(); }
-            } else { return forceLogout(); }
-        }
-        me = p; render();
-        sb.channel('db').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data' }, pl => { state = pl.new.payload; render(); }).subscribe();
-    }
-
-    function render() {
-        if(!me) return;
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'block';
-
-        const now = new Date(), m = now.getMonth(), y = now.getFullYear();
-        document.getElementById('me-name').innerText = me.name;
-        document.getElementById('me-avatar').innerText = me.name[0].toUpperCase();
-        document.getElementById('admin-panel').style.display = me.role === 'Admin' ? 'block' : 'none';
-        document.getElementById('v-inc').innerText = Math.floor(state.inc).toLocaleString();
-        document.getElementById('v-exp').innerText = Math.floor(Math.abs(state.exp)).toLocaleString();
-
-        // Календарь
-        const daysInMonth = new Date(y, m + 1, 0).getDate();
-        let firstDay = new Date(y, m, 1).getDay();
-        const offset = firstDay === 0 ? 6 : firstDay - 1;
-        
-        let cal = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => `<div class="cal-header">${d}</div>`).join('');
-        for(let i=0; i<offset; i++) cal += `<div class="day empty"></div>`;
-        for(let d=1; d<=daysInMonth; d++) {
-            const hasT = state.tasks.some(t => Number(t.day) === d && Number(t.month) === m);
-            cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div class="dot"></div>':''}</div>`;
-        }
-        document.getElementById('cal-days').innerHTML = cal;
-        document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
-        document.getElementById('sel-day-txt').innerText = selDay;
-
-        // ИСПРАВЛЕННЫЕ БЛИЖАЙШИЕ ПЛАНЫ
-        const today = now.getDate();
-        const tomorrow = today + 1;
-        const upcoming = state.tasks.filter(t => (Number(t.day) === today || Number(t.day) === tomorrow) && Number(t.month) === m);
-        
-        document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `
-            <div class="upcoming-item">
-                <span style="color:var(--accent)">${Number(t.day) === today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}
-            </div>
-        `).join('') || '<div style="opacity:0.3; font-size:12px">На ближайшие 48 часов планов нет</div>';
-
-        // Списки и чат
-        document.getElementById('chat-list').innerHTML = state.messages.slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
-        document.getElementById('chat-list').scrollTop = 9999;
-        
-        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => Number(t.day) === selDay && Number(t.month) === m).map(t => `
-            <div style="display:flex; justify-content:space-between; padding:10px; background:rgba(255,255,255,0.03); border-radius:12px; margin-bottom:5px">
-                <span>• ${t.t}</span>
-                <span onclick="delTask(${t.id})" style="color:var(--red); font-weight:900">×</span>
-            </div>`).join('') || 'Нет задач';
-
-        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `
-            <div class="sticker" style="background:var(--yellow)">${s.t}
-                <div onclick="delSticker(${s.id})" style="position:absolute; top:8px; right:8px; font-weight:900; opacity:0.3">×</div>
-            </div>`).join('');
-        
-        document.getElementById('family-list').innerHTML = (state.users || []).map(u => `
-            <div style="display:flex; justify-content:space-between; background:#000; padding:12px; border-radius:12px; margin-bottom:8px; border:1px solid #1f2937">
-                <div style="font-size:13px"><b>${u.name}</b><br><span style="opacity:0.5">${u.email}</span></div>
-                ${u.role !== 'Admin' ? `<div onclick="removeUser('${u.email}')" style="color:var(--red); font-weight:800; display:flex; align-items:center">УДАЛИТЬ</div>` : ''}
-            </div>`).join('');
-    }
-
-    async function money(d) { const v = document.getElementById('q-amt').value; if(!v) return; d>0?state.inc+=Number(v):state.exp+=Number(v); state.messages.push({u:me.name, t:`💰 ${v*d}₽: ${document.getElementById('q-txt').value}`}); await sync(); render(); }
-    async function sendMsg() { const i = document.getElementById('chat-in'); if(!i.value) return; state.messages.push({u:me.name, t:i.value}); i.value=''; await sync(); render(); }
-    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
-    async function addSticker() { const i = document.getElementById('s-in'); if(!i.value) return; state.stickers.unshift({t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
-    async function delTask(id) { state.tasks = state.tasks.filter(x=>x.id!==id); await sync(); render(); }
-    async function delSticker(id) { state.stickers = state.stickers.filter(x=>x.id!==id); await sync(); render(); }
-
     function openM(id) { document.getElementById(id).style.display = 'block'; }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
-    function setTheme(t) { document.body.className = 'theme-'+t; }
 
-    sb.auth.getSession().then(({data}) => { if(data.session) init(data.session); else document.getElementById('loader').style.display='none', document.getElementById('auth-screen').style.display='block'; });
+    sb.auth.getSession().then(({data}) => {
+        if(data.session) init(data.session);
+        else document.getElementById('loader').style.display = 'none', document.getElementById('auth-screen').style.display = 'block';
+    });
+
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
 </script>
 </body>
