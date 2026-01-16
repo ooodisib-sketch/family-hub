@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v36.0</title>
+    <title>FamilyHub v36.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -27,7 +27,6 @@
         input, select { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 12px; border-radius: 14px; margin-bottom: 8px; font-size: 15px; }
         .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 18px; width: 100%; cursor: pointer; transition: 0.2s; font-size: 14px; }
         
-        /* ГРАФИКИ КАНБАН */
         .kanban-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 4px 0 12px; }
         .kanban-fill { height: 100%; background: var(--accent); transition: 0.5s; width: 0%; }
         .stat-row { margin-bottom: 10px; }
@@ -92,17 +91,18 @@
             </div>
             <input type="text" id="f-com" placeholder="На что? (комментарий)">
             <button class="btn" style="margin-bottom:15px" onclick="addFinance()">ЗАПИСАТЬ ОПЕРАЦИЮ</button>
-            
             <div id="finance-stats"></div>
-            
             <hr style="opacity:0.1; margin:15px 0">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
                 <span style="font-size:10px; opacity:0.5">ИСТОРИЯ</span>
-                <select id="f-filter" onchange="render()" style="background:none; color:var(--accent); border:none; font-size:10px; font-weight:800; width:auto; margin:0; padding:0">
-                    <option value="all">ВСЁ ВРЕМЯ</option>
-                    <option value="today">СЕГОДНЯ</option>
-                    <option value="month">МЕСЯЦ</option>
-                </select>
+                <div style="display:flex; gap:10px">
+                    <span onclick="downloadReport()" style="font-size:10px; font-weight:800; color:var(--green); cursor:pointer">СКАЧАТЬ ОТЧЕТ</span>
+                    <select id="f-filter" onchange="render()" style="background:none; color:var(--accent); border:none; font-size:10px; font-weight:800; width:auto; margin:0; padding:0">
+                        <option value="all">ВСЁ ВРЕМЯ</option>
+                        <option value="today">СЕГОДНЯ</option>
+                        <option value="month">МЕСЯЦ</option>
+                    </select>
+                </div>
             </div>
             <div id="finance-history" style="max-height:150px; overflow-y:auto"></div>
         </div>
@@ -141,7 +141,7 @@
                 <div class="theme-dot" onclick="setSColor('var(--green)')" style="background:var(--green)"></div>
                 <div class="theme-dot" onclick="setSColor('var(--pink)')" style="background:var(--pink)"></div>
             </div>
-            <input type="text" id="s-in" placeholder="Текст стикера..." style="margin:0">
+            <input type="text" id="s-in" placeholder="Текст..." style="margin:0">
             <button class="btn" style="background:var(--text); color:#000; margin-top:10px" onclick="addSticker()">ПРИКЛЕИТЬ</button>
             <div id="stickers-list" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px"></div>
         </div>
@@ -183,6 +183,22 @@
     let me = null; let selDay = new Date().getDate(); let sColor = 'var(--yellow)';
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
+    function downloadReport() {
+        if(!state.fin_logs || state.fin_logs.length === 0) return alert("История пуста");
+        let txt = "ОТЧЕТ ПО ФИНАНСАМ FAMILY HUB\n" + "=".repeat(30) + "\n\n";
+        state.fin_logs.forEach(l => {
+            const date = new Date(l.date).toLocaleString('ru');
+            txt += `[${date}] ${l.u}: ${l.val > 0 ? '+' : ''}${l.val} ₽\n`;
+            txt += `Комментарий: ${l.com}\n`;
+            txt += "-".repeat(20) + "\n";
+        });
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `family_finance_report_${new Date().toLocaleDateString()}.txt`;
+        a.click();
+    }
+
     async function sync(snd = true) { 
         await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state }); 
         if(snd) audio.play().catch(()=>{});
@@ -194,11 +210,9 @@
         const c = document.getElementById('f-com').value.trim() || 'Без комментария';
         if(!s) return;
         if(!state.fin_logs) state.fin_logs = [];
-        
         const val = t === 'exp' ? -s : s;
         state.fin_logs.push({ id: Date.now(), u: me.name, val, com: c, date: new Date().toISOString() });
         if(t==='inc') state.inc += s; else state.exp += s;
-        
         document.getElementById('f-sum').value = ''; document.getElementById('f-com').value = '';
         await sync(); render();
     }
@@ -250,7 +264,6 @@
         document.getElementById('v-inc').innerText = (state.inc || 0).toLocaleString();
         document.getElementById('v-exp').innerText = (state.exp || 0).toLocaleString();
 
-        // ФИНАНСЫ И КАНБАН-ГРАФИКИ
         const fFilter = document.getElementById('f-filter').value;
         const filteredFin = (state.fin_logs || []).filter(l => {
             const d = new Date(l.date);
@@ -261,7 +274,6 @@
         
         const uStats = {};
         (state.fin_logs || []).forEach(l => { if(l.val < 0) uStats[l.u] = (uStats[l.u] || 0) + Math.abs(l.val); });
-        
         const maxSpend = Math.max(...Object.values(uStats), 1);
         document.getElementById('finance-stats').innerHTML = Object.entries(uStats).map(([n, v]) => `
             <div class="stat-row">
@@ -275,8 +287,7 @@
                 <div class="h-comment">${l.com}</div>
             </div>`).join('');
 
-        // Остальной рендер (Календарь, Чат, Стикеры)
-        const upcoming = state.tasks.filter(t => (t.day == today || t.day == today + 1) && t.month == month);
+        const upcoming = (state.tasks || []).filter(t => (t.day == today || t.day == today + 1) && t.month == month);
         document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `<div><span style="color:var(--accent)">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}</div>`).join('') || 'Нет планов';
 
         const daysInMonth = new Date(now.getFullYear(), month + 1, 0).getDate();
@@ -284,16 +295,16 @@
         const offset = (new Date(now.getFullYear(), month, 1).getDay() || 7) - 1;
         for(let i=0; i<offset; i++) cal += `<div class="day" style="background:transparent"></div>`;
         for(let d=1; d<=daysInMonth; d++) {
-            const hasT = state.tasks.some(t => t.day == d && t.month == month);
+            const hasT = (state.tasks || []).some(t => t.day == d && t.month == month);
             cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div style="position:absolute;bottom:4px;width:4px;height:4px;background:#fff;border-radius:50%"></div>':''}</div>`;
         }
         document.getElementById('cal-days').innerHTML = cal;
         document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
         document.getElementById('sel-day-txt').innerText = selDay;
-        document.getElementById('chat-list').innerHTML = state.messages.slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
+        document.getElementById('chat-list').innerHTML = (state.messages || []).slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
         document.getElementById('chat-list').scrollTop = 9999;
-        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `<div class="sticker" style="background:${s.color}"><div>${s.t}</div><div class="s-author">От: ${s.author}</div><div onclick="delS(${s.id})" style="position:absolute;top:8px;right:8px;opacity:0.3;cursor:pointer">×</div></div>`).join('');
-        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => t.day == selDay && t.month == month).map(t => `<div style="display:flex;justify-content:space-between;margin-top:5px"><span>• ${t.t}</span><span onclick="delT(${t.id})" style="color:var(--red);cursor:pointer">×</span></div>`).join('') || 'Задач нет';
+        document.getElementById('stickers-list').innerHTML = (state.stickers || []).map(s => `<div class="sticker" style="background:${s.color}"><div>${s.t}</div><div class="s-author">От: ${s.author}</div><div onclick="delS(${s.id})" style="position:absolute;top:8px;right:8px;opacity:0.3;cursor:pointer">×</div></div>`).join('');
+        document.getElementById('day-tasks').innerHTML = (state.tasks || []).filter(t => t.day == selDay && t.month == month).map(t => `<div style="display:flex;justify-content:space-between;margin-top:5px"><span>• ${t.t}</span><span onclick="delT(${t.id})" style="color:var(--red);cursor:pointer">×</span></div>`).join('') || 'Задач нет';
         document.getElementById('family-list').innerHTML = (state.users || []).map(u => `<div style="font-size:12px;margin-bottom:5px">${u.name} (${u.email})</div>`).join('');
     }
 
@@ -303,7 +314,7 @@
     async function delS(id) { state.stickers = state.stickers.filter(s=>s.id!==id); await sync(); render(); }
     function openM(id) { document.getElementById(id).style.display = 'block'; }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
-    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
+    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; if(!state.tasks) state.tasks = []; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
     async function forceLogout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
     function handleAuth() {
         const e = document.getElementById('email').value, p = document.getElementById('pass').value;
