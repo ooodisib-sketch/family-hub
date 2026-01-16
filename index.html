@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v36.7</title>
+    <title>FamilyHub v36.8</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -22,17 +22,23 @@
         .card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         input, select { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 12px; border-radius: 14px; margin-bottom: 8px; font-size: 15px; }
         .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 18px; width: 100%; cursor: pointer; transition: 0.2s; font-size: 14px; }
-        .kanban-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 4px 0 12px; }
-        .kanban-fill { height: 100%; background: var(--accent); transition: 0.5s; width: 0%; }
-        .stat-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
         .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); z-index: 1000; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; height: 65px; }
         .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2.5px solid var(--accent); cursor: pointer; color: var(--accent); }
         .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: none; padding: 25px; overflow-y: auto; }
         .theme-dot { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
-        .history-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        /* КАНБАН */
+        .kanban-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 4px 0 12px; }
+        .kanban-fill { height: 100%; background: var(--accent); transition: 0.5s; width: 0%; }
+        .stat-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+        
+        /* КАЛЕНДАРЬ СЕТКА */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; }
+        .day-name { text-align: center; font-size: 10px; opacity: 0.3; font-weight: 800; padding-bottom: 5px; }
         .day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #1e293b; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
         .day.active { background: var(--accent); color: #000; }
+        .day.empty { background: transparent; }
+        
         .chat-box { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .msg { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 18px; font-size: 14px; width: fit-content; max-width: 85%; }
         .msg.me { align-self: flex-end; background: var(--accent); color: #000; }
@@ -90,7 +96,9 @@
         </div>
 
         <div class="card">
-            <h3 style="font-size:11px; opacity:0.4; margin:0 0 15px; text-transform: uppercase;">КАЛЕНДАРЬ</h3>
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 15px; text-transform: uppercase;">
+                <span id="month-name"></span> — <span id="sel-day-txt"></span> ДЕНЬ
+            </h3>
             <div class="cal-grid" id="cal-days"></div>
             <div id="day-tasks" style="margin-bottom:15px; font-weight:600"></div>
             <div style="display:flex; gap:8px">
@@ -144,10 +152,15 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const DATA_ID = "shared_family_v36";
+    const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'); 
+
     let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], fin_logs: [] };
     let me = null; let selDay = new Date().getDate(); let sColor = 'var(--yellow)';
 
-    async function sync() { await sb.from('family_v10_data').upsert({ id: DATA_ID, payload: state }); }
+    async function sync() { 
+        await sb.from('family_v10_data').upsert({ id: DATA_ID, payload: state }); 
+        alertSound.play().catch(() => {});
+    }
 
     function setTheme(t) { document.body.className = 'theme-'+t; localStorage.setItem('f_theme', t); }
     function setSColor(c) { sColor = c; }
@@ -155,11 +168,9 @@
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
 
     async function addFinance() {
-        const s = parseFloat(document.getElementById('f-sum').value);
-        if(!s) return;
+        const s = parseFloat(document.getElementById('f-sum').value); if(!s) return;
         const t = document.getElementById('f-type').value;
-        const val = t === 'exp' ? -s : s;
-        state.fin_logs.push({ u: me.name, val, com: document.getElementById('f-com').value || '...', date: new Date().toISOString() });
+        state.fin_logs.push({ u: me.name, val: t==='exp'?-s:s, com: document.getElementById('f-com').value || '...', date: new Date().toISOString() });
         if(t==='inc') state.inc += s; else state.exp += s;
         document.getElementById('f-sum').value = ''; document.getElementById('f-com').value = '';
         await sync(); render();
@@ -200,7 +211,11 @@
         document.getElementById('loader').style.display = 'none';
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
-        sb.channel('global').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data', filter: `id=eq.${DATA_ID}` }, pl => { state = pl.new.payload; render(); }).subscribe();
+        sb.channel('global').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data', filter: `id=eq.${DATA_ID}` }, pl => { 
+            state = pl.new.payload; 
+            alertSound.play().catch(() => {});
+            render(); 
+        }).subscribe();
     }
 
     function render() {
@@ -213,17 +228,23 @@
         const uStats = {}; (state.fin_logs || []).forEach(l => { if(l.val < 0) uStats[l.u] = (uStats[l.u] || 0) + Math.abs(l.val); });
         const max = Math.max(...Object.values(uStats), 1);
         document.getElementById('finance-stats').innerHTML = Object.entries(uStats).map(([n, v]) => `<div class="stat-row"><div class="stat-meta"><span>${n}</span><span>${v} ₽</span></div><div class="kanban-bar"><div class="kanban-fill" style="width:${(v/max)*100}%"></div></div></div>`).join('');
-
         document.getElementById('finance-history').innerHTML = (state.fin_logs || []).slice().reverse().map(l => `<div class="history-item"><div class="h-main"><span>${l.u}</span><span style="color:${l.val>0?'var(--green)':'var(--red)'}">${l.val}</span></div><div style="font-size:11px;opacity:0.5">${l.com}</div></div>`).join('');
 
-        const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        let cal = ''; for(let d=1; d<=daysInMonth; d++) {
-            const hasT = (state.tasks || []).some(t => t.day == d && t.month == now.getMonth());
-            cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div style="position:absolute;bottom:4px;width:4px;height:4px;background:#fff;border-radius:50%"></div>':''}</div>`;
+        // РЕНДЕР КАЛЕНДАРЯ (Пн-Вс)
+        const now = new Date(); const month = now.getMonth(); const year = now.getFullYear();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayIdx = (new Date(year, month, 1).getDay() || 7) - 1; // 0=Пн, 6=Вс
+
+        let calHtml = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => `<div class="day-name">${d}</div>`).join('');
+        for(let i=0; i < firstDayIdx; i++) calHtml += `<div class="day empty"></div>`;
+        for(let d=1; d <= daysInMonth; d++) {
+            const hasT = (state.tasks || []).some(t => t.day == d && t.month == month);
+            calHtml += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div style="position:absolute;bottom:4px;width:4px;height:4px;background:#fff;border-radius:50%"></div>':''}</div>`;
         }
-        document.getElementById('cal-days').innerHTML = cal;
-        document.getElementById('day-tasks').innerHTML = (state.tasks || []).filter(t => t.day == selDay && t.month == now.getMonth()).map(t => `<div>• ${t.t}</div>`).join('') || 'Нет дел';
+        document.getElementById('cal-days').innerHTML = calHtml;
+        document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
+        document.getElementById('sel-day-txt').innerText = selDay;
+        document.getElementById('day-tasks').innerHTML = (state.tasks || []).filter(t => t.day == selDay && t.month == month).map(t => `<div>• ${t.t}</div>`).join('') || 'Нет дел';
 
         document.getElementById('chat-list').innerHTML = (state.messages || []).slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
         document.getElementById('chat-list').scrollTop = 9999;
