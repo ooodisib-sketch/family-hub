@@ -3,234 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Family Hub | Взаимопомощь</title>
-    
+    <title>FamilyHub v36.9</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #007AFF; --bg: #F2F2F7; --text: #1C1C1E; --green: #34C759; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; overflow: hidden; }
-        
-        .top-nav { position: fixed; top: 20px; left: 0; right: 0; z-index: 5000; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: none; }
-        .circle-btn { width: 56px; height: 56px; background: white; border-radius: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: auto; font-size: 24px; cursor: pointer; border: none; }
-
-        #map { height: 45vh; width: 100%; position: relative; z-index: 1; }
-        #content { height: 55vh; background: white; border-top-left-radius: 30px; border-top-right-radius: 30px; margin-top: -30px; z-index: 100; position: relative; overflow-y: auto; padding: 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); }
-
-        .card { background: #F9F9FB; border-radius: 20px; padding: 18px; margin-bottom: 12px; border: 1px solid #EEE; }
-        .badge { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; margin-bottom: 8px; display: inline-block; }
-        
-        .btn { width: 100%; padding: 16px; border-radius: 16px; border: none; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 10px; }
-        .btn-p { background: var(--p); color: white; }
-        
-        .overlay { position: fixed; inset: 0; background: white; z-index: 6000; transform: translateY(100%); transition: 0.3s ease; display: flex; flex-direction: column; }
-        .overlay.active { transform: translateY(0); }
-        .ov-header { padding: 20px; border-bottom: 1px solid #EEE; display: flex; align-items: center; gap: 15px; font-weight: 800; }
-
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px; background: #E5E5EA; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 15px; border-radius: 18px; max-width: 80%; font-size: 15px; line-height: 1.4; position: relative; }
-        .msg.me { background: var(--p); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.other { background: white; color: black; align-self: flex-start; border-bottom-left-radius: 2px; }
-        
-        #toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); background: #1C1C1E; color: white; padding: 12px 25px; border-radius: 50px; z-index: 9999; display: none; font-size: 14px; }
+        :root { --bg: #030712; --card: #111827; --accent: #38bdf8; --text: #f3f4f6; --red: #f87171; --green: #4ade80; --yellow: #fbbf24; --pink: #f472b6; }
+        body.theme-blue { --accent: #38bdf8; --bg: #030712; }
+        body.theme-purple { --accent: #bc61ff; --bg: #0d0118; }
+        body.theme-red { --accent: #ff4d4d; --bg: #110000; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg); color: var(--text); overflow-x: hidden; transition: background 0.3s; }
+        h1, h2, h3, .btn, #clock, b { font-weight: 900; }
+        #loader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .spin { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: s 1s linear infinite; }
+        @keyframes s { to { transform: rotate(360deg); } }
+        #auth-screen, #app-screen { display: none; padding: 20px; min-height: 100vh; }
+        .container { max-width: 500px; margin: 0 auto; padding-top: 75px; }
+        .card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input, select { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 12px; border-radius: 14px; margin-bottom: 8px; font-size: 15px; }
+        .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 18px; width: 100%; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); z-index: 1000; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; height: 65px; }
+        .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2.5px solid var(--accent); cursor: pointer; color: var(--accent); }
+        .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: none; padding: 25px; overflow-y: auto; }
+        .theme-dot { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+        .kanban-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 4px 0 12px; }
+        .kanban-fill { height: 100%; background: var(--accent); transition: 0.5s; width: 0%; }
+        .stat-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; }
+        .day-name { text-align: center; font-size: 10px; opacity: 0.3; font-weight: 800; padding-bottom: 5px; }
+        .day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #1e293b; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
+        .day.active { background: var(--accent); color: #000; }
+        .day.empty { background: transparent; }
+        .chat-box { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 18px; font-size: 14px; width: fit-content; max-width: 85%; }
+        .msg.me { align-self: flex-end; background: var(--accent); color: #000; }
+        .sticker { padding: 15px; border-radius: 16px; font-weight: 700; color: #000; position: relative; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; }
     </style>
 </head>
-<body>
+<body class="theme-blue">
 
-<div id="toast"></div>
+<div id="loader"><div class="spin"></div></div>
 
-<div id="auth" style="position:fixed; inset:0; background:white; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center;">
-    <h1 style="font-size: 32px; font-weight: 800; color: var(--p);">Family Hub</h1>
-    <p>Выберите вашу роль для входа</p>
-    <button class="btn btn-p" onclick="start('client')">Я Заказчик</button>
-    <button class="btn btn-p" onclick="start('worker')" style="background:#1C1C1E; margin-top:10px;">Я Исполнитель</button>
-</div>
-
-<div class="top-nav" id="ui" style="display:none">
-    <button class="circle-btn" onclick="openCreate()" id="add-btn">➕</button>
-    <button class="circle-btn" onclick="openOverlay('profile')">👤</button>
-</div>
-
-<div id="map"></div>
-<div id="content">
-    <h3 id="feed-title">Задания рядом</h3>
-    <div id="feed"></div>
-</div>
-
-<div id="ov-create" class="overlay">
-    <div class="ov-header"><button onclick="closeOv()" style="border:none; background:none; font-size:24px;">✕</button> Новый заказ</div>
-    <div style="padding:20px;">
-        <input id="c-title" placeholder="Что нужно сделать?" style="width:100%; padding:15px; border-radius:12px; border:1px solid #DDD; margin-bottom:10px;">
-        <textarea id="c-desc" placeholder="Описание..." style="width:100%; padding:15px; border-radius:12px; border:1px solid #DDD; margin-bottom:10px;"></textarea>
-        <input id="c-price" type="number" placeholder="Бюджет в ₽" style="width:100%; padding:15px; border-radius:12px; border:1px solid #DDD; margin-bottom:10px;">
-        <button class="btn btn-p" onclick="saveTask()">Опубликовать</button>
+<div id="auth-screen">
+    <div class="container" style="padding-top:15vh; text-align:center">
+        <h1 style="color:var(--accent); font-size:52px; margin:0">Family</h1>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="pass" placeholder="Пароль">
+        <button class="btn" onclick="handleAuth()">ВОЙТИ</button>
     </div>
 </div>
 
-<div id="ov-profile" class="overlay">
-    <div class="ov-header"><button onclick="closeOv()" style="border:none; background:none; font-size:24px;">✕</button> Мой профиль</div>
-    <div style="padding:20px;">
-        <div class="card" style="text-align:center;">
-            <div style="font-size:40px;">👤</div>
-            <h2 id="u-display-name">Загрузка...</h2>
-            <p id="u-display-role" style="opacity:0.6;"></p>
+<div id="app-screen">
+    <div class="top-bar">
+        <div style="font-weight:900;">
+            <span style="color:var(--green)">+ <span id="v-inc">0</span></span>
+            <span style="color:var(--red); margin-left:15px">- <span id="v-exp">0</span></span>
         </div>
-        <h4>Мои действия</h4>
-        <div id="my-feed"></div>
+        <div id="me-avatar" class="user-icon" onclick="openM('m-settings')">👤</div>
+    </div>
+
+    <div class="container">
+        <div style="margin-bottom:25px">
+            <div id="clock" style="font-size:52px; letter-spacing:-2px">00:00</div>
+            <div id="me-name" style="color:var(--accent); font-size:18px">...</div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px">БЮДЖЕТ</h3>
+            <div style="display:flex; gap:6px;">
+                <input type="number" id="f-sum" placeholder="Сумма" style="flex:1">
+                <select id="f-type" style="flex:1"><option value="exp">Расход (-)</option><option value="inc">Доход (+)</option></select>
+            </div>
+            <input type="text" id="f-com" placeholder="На что?">
+            <button class="btn" style="margin-bottom:15px" onclick="addFinance()">ЗАПИСАТЬ</button>
+            <div id="finance-stats"></div>
+            <hr style="opacity:0.1; margin:15px 0">
+            <div id="finance-history" style="max-height:150px; overflow-y:auto"></div>
+        </div>
+
+        <div class="card" style="border-left: 5px solid var(--accent)">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px; letter-spacing:1px">БЛИЖАЙШИЕ ПЛАНЫ</h3>
+            <div id="upcoming-list" style="font-weight:700; font-size:14px"></div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px">ЧАТ</h3>
+            <div id="chat-list" class="chat-box"></div>
+            <div style="display:flex; gap:8px; margin-top:10px">
+                <input type="text" id="chat-in" placeholder="Сообщение...">
+                <button class="btn" style="width:65px" onclick="sendMsg()">></button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 15px; text-transform: uppercase;">
+                <span id="month-name"></span> — <span id="sel-day-txt"></span> ДЕНЬ
+            </h3>
+            <div class="cal-grid" id="cal-days"></div>
+            <div id="day-tasks" style="margin-bottom:15px; font-weight:600"></div>
+            <div style="display:flex; gap:8px">
+                <input type="text" id="t-in" placeholder="Дело...">
+                <button class="btn" style="width:65px" onclick="addTask()">OK</button>
+            </div>
+        </div>
+
+        <div class="card" style="background:transparent; border:none; padding:0">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 10px">ЗАМЕТКИ</h3>
+            <div style="display:flex; gap:10px; margin-bottom:10px">
+                <div class="theme-dot" onclick="setSColor('var(--yellow)')" style="background:var(--yellow)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--accent)')" style="background:var(--accent)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--green)')" style="background:var(--green)"></div>
+            </div>
+            <input type="text" id="s-in" placeholder="Текст...">
+            <button class="btn" style="background:var(--text); color:#000; margin-top:5px" onclick="addSticker()">ПРИКЛЕИТЬ</button>
+            <div id="stickers-list" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px"></div>
+        </div>
+
+        <button class="btn" onclick="forceLogout()" style="background:none; border:1px solid rgba(255,255,255,0.1); color:var(--red); margin:50px 0">ВЫЙТИ</button>
     </div>
 </div>
 
-<div id="ov-chat" class="overlay">
-    <div class="ov-header"><button onclick="closeOv()" style="border:none; background:none; font-size:24px;">✕</button> Чат по заказу</div>
-    <div id="chat-box"></div>
-    <div style="padding:15px; display:flex; gap:10px; border-top:1px solid #EEE;">
-        <input id="chat-inp" placeholder="Сообщение..." style="flex:1; padding:12px; border-radius:20px; border:1px solid #DDD;">
-        <button class="circle-btn" onclick="sendMsg()" style="width:45px; height:45px; box-shadow:none; background:var(--p); color:white;">➤</button>
+<div id="m-settings" class="modal">
+    <div style="float:right; font-size:42px" onclick="closeM('m-settings')">×</div>
+    <h2>Настройки</h2>
+    <div class="card">
+        <h3>Тема оформления</h3>
+        <div style="display:flex; gap:15px; margin-top:10px">
+            <div class="theme-dot" onclick="setTheme('blue')" style="background:#38bdf8"></div>
+            <div class="theme-dot" onclick="setTheme('purple')" style="background:#bc61ff"></div>
+            <div class="theme-dot" onclick="setTheme('red')" style="background:#ff4d4d"></div>
+        </div>
     </div>
+    <div id="admin-panel" style="display:none">
+        <div class="card">
+            <h3>Регистрация участников</h3>
+            <input type="email" id="n-email" placeholder="Email">
+            <input type="text" id="n-name" placeholder="Имя">
+            <input type="text" id="n-pass" placeholder="Пароль">
+            <button class="btn" onclick="inviteUser()">СОЗДАТЬ</button>
+        </div>
+    </div>
+    <button class="btn" onclick="closeM('m-settings')">ЗАКРЫТЬ</button>
 </div>
 
 <script>
-    const SB_URL = 'https://mrhovmabyawbfzcxwmib.supabase.co';
-    const SB_KEY = 'sb_publishable_b2kTzbpSmcWVrpPUPFng7Q_enwqQd8u';
-    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    const SUPABASE_URL = "https://qmhlniyvueaatnxknfff.supabase.co"; 
+    const SUPABASE_KEY = "sb_publishable_sDpVaDfmXJ57QaQTeoJ-dQ_YuDonR5J";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let user = { id: localStorage.getItem('uid') || 'u'+Date.now(), role: '', name: '', lat: 55.75, lon: 37.61 };
-    localStorage.setItem('uid', user.id);
+    const DATA_ID = "shared_family_v36";
+    const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'); 
 
-    let map, markers = {}, activeChat = null;
-    const STATUS_RU = { 'searching': 'Поиск', 'active': 'В работе', 'completed': 'Выполнено' };
+    let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], fin_logs: [] };
+    let me = null; let selDay = new Date().getDate(); let sColor = 'var(--yellow)';
 
-    async function start(role) {
-        user.role = role;
-        document.getElementById('auth').style.display = 'none';
-        document.getElementById('ui').style.display = 'flex';
-        if(role === 'worker') document.getElementById('add-btn').style.display = 'none';
-        
-        // Проверка/создание профиля с именем
-        const { data: prof } = await _supabase.from('profiles').select('*').eq('id', user.id).single();
-        if(!prof) {
-            user.name = role === 'client' ? 'Заказчик' : 'Исполнитель';
-            await _supabase.from('profiles').insert([{ id: user.id, name: user.name, role: role, balance: 0 }]);
-        } else {
-            user.name = prof.name || 'Пользователь';
-        }
-        
-        document.getElementById('u-display-name').innerText = user.name;
-        document.getElementById('u-display-role').innerText = role === 'client' ? 'Заказчик' : 'Исполнитель';
-
-        initMap();
-        load();
-        
-        _supabase.channel('any').on('postgres_changes', {event:'*', schema:'public', table:'tasks'}, load).subscribe();
-        _supabase.channel('msgs').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, (p) => {
-            if(p.new.task_id === activeChat) appendMsg(p.new);
-        }).subscribe();
+    async function sync() { 
+        await sb.from('family_v10_data').upsert({ id: DATA_ID, payload: state }); 
+        alertSound.play().catch(() => {});
     }
 
-    function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([user.lat, user.lon], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        navigator.geolocation.getCurrentPosition(p => {
-            user.lat = p.coords.latitude; user.lon = p.coords.longitude;
-            map.setView([user.lat, user.lon], 14);
-            L.circleMarker([user.lat, user.lon], { radius: 7, color: '#007AFF' }).addTo(map);
-        });
-    }
+    function setTheme(t) { document.body.className = 'theme-'+t; localStorage.setItem('f_theme', t); }
+    function setSColor(c) { sColor = c; }
+    function openM(id) { document.getElementById(id).style.display = 'block'; }
+    function closeM(id) { document.getElementById(id).style.display = 'none'; }
 
-    async function load() {
-        const { data: tasks } = await _supabase.from('tasks').select('*').order('created_at', {ascending: false});
-        render(tasks);
-    }
-
-    function render(tasks) {
-        const feed = document.getElementById('feed');
-        const myFeed = document.getElementById('my-feed');
-        feed.innerHTML = '';
-        myFeed.innerHTML = '';
-        Object.values(markers).forEach(m => map.removeLayer(m));
-
-        tasks.forEach(t => {
-            const sRu = STATUS_RU[t.status] || t.status;
-            const isMy = t.client_id === user.id || t.worker_id === user.id;
-
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-                <span class="badge" style="background:${t.status==='active'?'#FFF4E5':'#EBF5FF'}; color:${t.status==='active'?'#FF9500':'#007AFF'}">${sRu}</span>
-                <div style="display:flex; justify-content:space-between;">
-                    <b>${t.title}</b>
-                    <span>${t.price} ₽</span>
-                </div>
-                <p style="font-size:13px; opacity:0.6; margin:10px 0;">${t.description || ''}</p>
-            `;
-
-            if(t.status === 'searching' && user.role === 'worker') {
-                const b = document.createElement('button'); b.className='btn btn-p'; b.innerText='Взять в работу';
-                b.onclick = () => take(t.id); card.appendChild(b);
-            }
-            if(t.status === 'active' && isMy) {
-                const b = document.createElement('button'); b.className='btn btn-p'; b.innerText='Открыть чат';
-                b.style.background = '#1C1C1E';
-                b.onclick = () => openChat(t.id); card.appendChild(b);
-            }
-
-            if(t.status === 'searching' && !isMy) feed.appendChild(card);
-            if(isMy) myFeed.appendChild(card.cloneNode(true));
-
-            if(t.status === 'searching') {
-                markers[t.id] = L.marker([t.lat, t.lon]).addTo(map).bindPopup(t.title);
-            }
-        });
-    }
-
-    async function take(id) {
-        await _supabase.from('tasks').update({ status: 'active', worker_id: user.id }).eq('id', id);
-        toast("Вы приняли заказ!");
-    }
-
-    async function saveTask() {
-        const title = document.getElementById('c-title').value;
-        const price = document.getElementById('c-price').value;
-        if(!title || !price) return toast("Заполните поля");
-        await _supabase.from('tasks').insert([{
-            title, description: document.getElementById('c-desc').value,
-            price: parseInt(price), client_id: user.id,
-            lat: user.lat, lon: user.lon, status: 'searching'
-        }]);
-        closeOv(); toast("Заказ опубликован!");
-    }
-
-    async function openChat(tid) {
-        activeChat = tid;
-        document.getElementById('chat-box').innerHTML = '';
-        openOverlay('chat');
-        const { data } = await _supabase.from('messages').select('*').eq('task_id', tid).order('created_at');
-        if(data) data.forEach(appendMsg);
-    }
-
-    function appendMsg(m) {
-        const box = document.getElementById('chat-box');
-        const div = document.createElement('div');
-        div.className = `msg ${m.sender_id === user.id ? 'me' : 'other'}`;
-        div.innerText = m.text;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+    async function addFinance() {
+        const s = parseFloat(document.getElementById('f-sum').value); if(!s) return;
+        const t = document.getElementById('f-type').value;
+        state.fin_logs.push({ u: me.name, val: t==='exp'?-s:s, com: document.getElementById('f-com').value || '...', date: new Date().toISOString() });
+        if(t==='inc') state.inc += s; else state.exp += s;
+        document.getElementById('f-sum').value = ''; document.getElementById('f-com').value = '';
+        await sync(); render();
     }
 
     async function sendMsg() {
-        const inp = document.getElementById('chat-inp');
-        if(!inp.value || !activeChat) return;
-        const text = inp.value; inp.value = '';
-        await _supabase.from('messages').insert([{ task_id: activeChat, sender_id: user.id, text }]);
+        const i = document.getElementById('chat-in'); if(!i.value) return;
+        state.messages.push({ u: me.name, t: i.value }); i.value=''; await sync(); render();
     }
 
-    function openCreate() { openOverlay('create'); }
-    function openOverlay(id) { document.getElementById('ov-'+id).classList.add('active'); } 
-    function closeOv() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active')); activeChat = null; }
-    function toast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display='block'; setTimeout(()=>t.style.display='none', 2000); }
+    async function addSticker() {
+        const i = document.getElementById('s-in'); if(!i.value) return;
+        state.stickers.unshift({ t: i.value, color: sColor, id: Date.now(), author: me.name }); i.value=''; await sync(); render();
+    }
+
+    async function addTask() {
+        const i = document.getElementById('t-in'); if(!i.value) return;
+        if(!state.tasks) state.tasks = [];
+        state.tasks.push({ day: selDay, month: new Date().getMonth(), t: i.value, id: Date.now() }); i.value=''; await sync(); render();
+    }
+
+    async function inviteUser() {
+        const email = document.getElementById('n-email').value, name = document.getElementById('n-name').value, password = document.getElementById('n-pass').value;
+        const { error } = await sb.auth.signUp({ email, password });
+        if(error) return alert(error.message);
+        await sb.from('family_v10_profiles').upsert({ email, name, role: 'User' }, { onConflict: 'email' });
+        alert("Готово!");
+    }
+
+    async function init(session) {
+        if(!session) return;
+        const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', DATA_ID).maybeSingle();
+        if(d) state = d.payload;
+        let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
+        me = p || { name: "User", role: "User" };
+        if(localStorage.getItem('f_theme')) setTheme(localStorage.getItem('f_theme'));
+        render();
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        sb.channel('global').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data', filter: `id=eq.${DATA_ID}` }, pl => { 
+            state = pl.new.payload; 
+            alertSound.play().catch(() => {});
+            render(); 
+        }).subscribe();
+    }
+
+    function render() {
+        if(!me) return;
+        document.getElementById('me-name').innerText = me.name;
+        document.getElementById('admin-panel').style.display = me.role === 'Admin' ? 'block' : 'none';
+        document.getElementById('v-inc').innerText = (state.inc || 0).toLocaleString();
+        document.getElementById('v-exp').innerText = (state.exp || 0).toLocaleString();
+
+        const uStats = {}; (state.fin_logs || []).forEach(l => { if(l.val < 0) uStats[l.u] = (uStats[l.u] || 0) + Math.abs(l.val); });
+        const max = Math.max(...Object.values(uStats), 1);
+        document.getElementById('finance-stats').innerHTML = Object.entries(uStats).map(([n, v]) => `<div class="stat-row"><div class="stat-meta"><span>${n}</span><span>${v} ₽</span></div><div class="kanban-bar"><div class="kanban-fill" style="width:${(v/max)*100}%"></div></div></div>`).join('');
+        document.getElementById('finance-history').innerHTML = (state.fin_logs || []).slice().reverse().map(l => `<div class="history-item"><div class="h-main"><span>${l.u}</span><span style="color:${l.val>0?'var(--green)':'var(--red)'}">${l.val}</span></div><div style="font-size:11px;opacity:0.5">${l.com}</div></div>`).join('');
+
+        const now = new Date(); const month = now.getMonth(); const year = now.getFullYear(); const today = now.getDate();
+        
+        // БЛИЖАЙШИЕ ПЛАНЫ (ЛОГИКА)
+        const upcoming = (state.tasks || []).filter(t => (t.day == today || t.day == today + 1) && t.month == month);
+        document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `<div><span style="color:var(--accent)">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}</div>`).join('') || 'Нет ближайших дел';
+
+        // КАЛЕНДАРЬ
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayIdx = (new Date(year, month, 1).getDay() || 7) - 1;
+        let calHtml = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => `<div class="day-name">${d}</div>`).join('');
+        for(let i=0; i < firstDayIdx; i++) calHtml += `<div class="day empty"></div>`;
+        for(let d=1; d <= daysInMonth; d++) {
+            const hasT = (state.tasks || []).some(t => t.day == d && t.month == month);
+            calHtml += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div style="position:absolute;bottom:4px;width:4px;height:4px;background:#fff;border-radius:50%"></div>':''}</div>`;
+        }
+        document.getElementById('cal-days').innerHTML = calHtml;
+        document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
+        document.getElementById('sel-day-txt').innerText = selDay;
+        document.getElementById('day-tasks').innerHTML = (state.tasks || []).filter(t => t.day == selDay && t.month == month).map(t => `<div style="display:flex;justify-content:space-between"><span>• ${t.t}</span><span onclick="delT(${t.id})" style="color:var(--red);cursor:pointer">×</span></div>`).join('') || 'Нет дел';
+
+        document.getElementById('chat-list').innerHTML = (state.messages || []).slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
+        document.getElementById('chat-list').scrollTop = 9999;
+        document.getElementById('stickers-list').innerHTML = (state.stickers || []).map(s => `<div class="sticker" style="background:${s.color}"><div>${s.t}</div><div style="font-size:9px;opacity:0.5">От: ${s.author}</div><div onclick="delS(${s.id})" style="position:absolute;top:5px;right:8px;opacity:0.3">×</div></div>`).join('');
+    }
+
+    async function delT(id) { state.tasks = state.tasks.filter(t=>t.id!==id); await sync(); render(); }
+    async function delS(id) { state.stickers = state.stickers.filter(s=>s.id!==id); await sync(); render(); }
+    function handleAuth() {
+        const e = document.getElementById('email').value, p = document.getElementById('pass').value;
+        sb.auth.signInWithPassword({ email: e, password: p }).then(({data, error}) => { if(!error) init(data.session); else alert("Ошибка входа"); });
+    }
+    async function forceLogout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
+
+    sb.auth.getSession().then(({data}) => { if(data.session) init(data.session); else { document.getElementById('loader').style.display='none'; document.getElementById('auth-screen').style.display='block'; }});
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
 </script>
 </body>
 </html>
+
