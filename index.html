@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v36.1</title>
+    <title>FamilyHub v36.0 (Restored)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -95,14 +95,11 @@
             <hr style="opacity:0.1; margin:15px 0">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
                 <span style="font-size:10px; opacity:0.5">ИСТОРИЯ</span>
-                <div style="display:flex; gap:10px">
-                    <span onclick="downloadReport()" style="font-size:10px; font-weight:800; color:var(--green); cursor:pointer">СКАЧАТЬ ОТЧЕТ</span>
-                    <select id="f-filter" onchange="render()" style="background:none; color:var(--accent); border:none; font-size:10px; font-weight:800; width:auto; margin:0; padding:0">
-                        <option value="all">ВСЁ ВРЕМЯ</option>
-                        <option value="today">СЕГОДНЯ</option>
-                        <option value="month">МЕСЯЦ</option>
-                    </select>
-                </div>
+                <select id="f-filter" onchange="render()" style="background:none; color:var(--accent); border:none; font-size:10px; font-weight:800; width:auto; margin:0; padding:0">
+                    <option value="all">ВСЁ ВРЕМЯ</option>
+                    <option value="today">СЕГОДНЯ</option>
+                    <option value="month">МЕСЯЦ</option>
+                </select>
             </div>
             <div id="finance-history" style="max-height:150px; overflow-y:auto"></div>
         </div>
@@ -141,7 +138,7 @@
                 <div class="theme-dot" onclick="setSColor('var(--green)')" style="background:var(--green)"></div>
                 <div class="theme-dot" onclick="setSColor('var(--pink)')" style="background:var(--pink)"></div>
             </div>
-            <input type="text" id="s-in" placeholder="Текст..." style="margin:0">
+            <input type="text" id="s-in" placeholder="Текст стикера..." style="margin:0">
             <button class="btn" style="background:var(--text); color:#000; margin-top:10px" onclick="addSticker()">ПРИКЛЕИТЬ</button>
             <div id="stickers-list" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px"></div>
         </div>
@@ -182,22 +179,6 @@
     let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], users: [], fin_logs: [] };
     let me = null; let selDay = new Date().getDate(); let sColor = 'var(--yellow)';
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
-
-    function downloadReport() {
-        if(!state.fin_logs || state.fin_logs.length === 0) return alert("История пуста");
-        let txt = "ОТЧЕТ ПО ФИНАНСАМ FAMILY HUB\n" + "=".repeat(30) + "\n\n";
-        state.fin_logs.forEach(l => {
-            const date = new Date(l.date).toLocaleString('ru');
-            txt += `[${date}] ${l.u}: ${l.val > 0 ? '+' : ''}${l.val} ₽\n`;
-            txt += `Комментарий: ${l.com}\n`;
-            txt += "-".repeat(20) + "\n";
-        });
-        const blob = new Blob([txt], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `family_finance_report_${new Date().toLocaleDateString()}.txt`;
-        a.click();
-    }
 
     async function sync(snd = true) { 
         await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state }); 
