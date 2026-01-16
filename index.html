@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v33.0</title>
+    <title>FamilyHub v35.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
@@ -24,34 +24,32 @@
         .container { max-width: 500px; margin: 0 auto; padding-top: 75px; }
 
         .card { background: var(--card); border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; }
+        input, select { width: 100%; background: #000; border: 1px solid #1f2937; color: #fff; padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 16px; }
         .btn { background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 18px; width: 100%; cursor: pointer; transition: 0.2s; font-size: 14px; }
         
         .top-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); z-index: 1000; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; height: 65px; }
         .user-icon { width: 44px; height: 44px; border-radius: 14px; background: #1f2937; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 2.5px solid var(--accent); cursor: pointer; color: var(--accent); }
         
-        /* 3D КАЛЕНДАРЬ */
+        .finance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: rgba(255,255,255,0.03); border-radius: 16px; padding: 12px; border-top: 3px solid var(--accent); }
+        .stat-user { font-size: 10px; opacity: 0.5; text-transform: uppercase; margin-bottom: 4px; font-weight: 800; }
+        .stat-val { font-weight: 900; font-size: 18px; color: var(--red); }
+        
+        .history-item { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; }
         .cal-header { text-align: center; font-size: 10px; opacity: 0.3; }
-        .day { 
-            position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; 
-            background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer;
-            box-shadow: 4px 4px 8px #05070a, -1px -1px 2px rgba(255,255,255,0.05);
-        }
-        .day.active { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent), inset 2px 2px 4px rgba(255,255,255,0.4); }
-        .day.empty { background: transparent; box-shadow: none; }
-        .dot { position: absolute; bottom: 5px; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
-
-        .chat-box { height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 4px 4px 8px #05070a, -1px -1px 2px rgba(255,255,255,0.05); }
+        .day.active { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
+        
+        .chat-box { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .msg { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 18px; font-size: 14px; width: fit-content; max-width: 85%; }
         .msg.me { align-self: flex-end; background: var(--accent); color: #000; }
-        .msg-img { width: 100%; border-radius: 12px; margin-top: 8px; display: block; background: #000; min-height: 50px;}
-        .file-label { background: #1f2937; color: var(--accent); padding: 12px; border-radius: 16px; cursor: pointer; font-size: 20px; }
 
         .sticker { padding: 15px; border-radius: 16px; font-weight: 700; color: #000; position: relative; min-height: 100px; display: flex; flex-direction: column; justify-content: space-between; }
         .s-author { font-size: 10px; opacity: 0.6; text-transform: uppercase; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 4px; }
         .modal { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: none; padding: 25px; overflow-y: auto; }
-        .theme-dot { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
+        .theme-dot { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; }
     </style>
 </head>
 <body class="theme-blue">
@@ -82,6 +80,29 @@
             <div id="me-name" style="color:var(--accent); font-size:18px">...</div>
         </div>
 
+        <div class="card">
+            <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px; letter-spacing:1px">БЮДЖЕТ И АНАЛИТИКА</h3>
+            <div style="display:flex; gap:8px; margin-bottom:15px">
+                <input type="number" id="f-sum" placeholder="Сумма" style="margin:0; flex:2">
+                <select id="f-type" style="margin:0; flex:1; padding:0 5px; font-size:12px">
+                    <option value="exp">Расход (-)</option>
+                    <option value="inc">Доход (+)</option>
+                </select>
+                <button class="btn" style="width:50px" onclick="addFinance()">OK</button>
+            </div>
+            <div id="finance-stats" class="finance-grid"></div>
+            <hr style="opacity:0.1; margin:15px 0">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+                <span style="font-size:10px; opacity:0.5">ИСТОРИЯ</span>
+                <select id="f-filter" onchange="render()" style="background:none; color:var(--accent); border:none; font-size:10px; font-weight:800; width:auto; margin:0; padding:0">
+                    <option value="all">ЗА ВСЕ ВРЕМЯ</option>
+                    <option value="today">СЕГОДНЯ</option>
+                    <option value="month">ЗА МЕСЯЦ</option>
+                </select>
+            </div>
+            <div id="finance-history" style="max-height:120px; overflow-y:auto"></div>
+        </div>
+
         <div class="card" style="border-left: 5px solid var(--accent)">
             <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px; letter-spacing:1px">БЛИЖАЙШИЕ ПЛАНЫ</h3>
             <div id="upcoming-list" style="font-weight:700; font-size:14px"></div>
@@ -91,11 +112,9 @@
             <h3 style="font-size:11px; opacity:0.4; margin:0 0 12px">ЧАТ СЕМЬИ</h3>
             <div id="chat-list" class="chat-box"></div>
             <div style="display:flex; gap:8px; align-items:center; margin-top:10px">
-                <label class="file-label"><input type="file" id="chat-file" hidden accept="image/*" onchange="previewFile()">📷</label>
                 <input type="text" id="chat-in" placeholder="Сообщение..." style="margin:0">
                 <button class="btn" style="width:65px" onclick="sendMsg()">></button>
             </div>
-            <div id="file-indicator" style="font-size:10px; color:var(--green); margin-top:5px; display:none">Фото готово к отправке</div>
         </div>
 
         <div class="card">
@@ -113,10 +132,10 @@
         <div class="card" style="background:transparent; border:none; padding:0">
             <h3 style="font-size:11px; opacity:0.4; margin:0 0 10px">ДОСКА ЗАМЕТОК</h3>
             <div style="display:flex; gap:10px; margin-bottom:12px">
-                <div class="theme-dot" onclick="setColor('var(--yellow)')" style="background:var(--yellow)"></div>
-                <div class="theme-dot" onclick="setColor('var(--accent)')" style="background:var(--accent)"></div>
-                <div class="theme-dot" onclick="setColor('var(--green)')" style="background:var(--green)"></div>
-                <div class="theme-dot" onclick="setColor('var(--pink)')" style="background:var(--pink)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--yellow)')" style="background:var(--yellow)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--accent)')" style="background:var(--accent)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--green)')" style="background:var(--green)"></div>
+                <div class="theme-dot" onclick="setSColor('var(--pink)')" style="background:var(--pink)"></div>
             </div>
             <input type="text" id="s-in" placeholder="Текст стикера..." style="margin:0">
             <button class="btn" style="background:var(--text); color:#000; margin-top:10px" onclick="addSticker()">ПРИКЛЕИТЬ</button>
@@ -130,7 +149,6 @@
 <div id="m-settings" class="modal">
     <div style="float:right; font-size:42px" onclick="closeM('m-settings')">×</div>
     <h2>Настройки</h2>
-    
     <div class="card">
         <h3>Тема оформления</h3>
         <div style="display:flex; gap:15px; margin-top:10px">
@@ -139,7 +157,6 @@
             <div class="theme-dot" onclick="setTheme('red')" style="background:#ff4d4d"></div>
         </div>
     </div>
-
     <div id="admin-panel" style="display:none">
         <div class="card">
             <h3>Регистрация (Админ)</h3>
@@ -158,12 +175,8 @@
     const SUPABASE_KEY = "sb_publishable_sDpVaDfmXJ57QaQTeoJ-dQ_YuDonR5J";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], users: [] };
-    let me = null;
-    let selDay = new Date().getDate();
-    let currentColor = 'var(--yellow)';
-    
-    // 3. ЗВУКИ (ВОССТАНОВЛЕНО)
+    let state = { inc: 0, exp: 0, stickers: [], messages: [], tasks: [], users: [], fin_logs: [] };
+    let me = null; let selDay = new Date().getDate(); let sColor = 'var(--yellow)';
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
     async function forceLogout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
@@ -174,31 +187,35 @@
         if(!error) init(data.session); else alert("Ошибка входа");
     }
 
-    async function sync(playSnd = true) { 
+    async function sync(snd = true) { 
         await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state }); 
-        if(playSnd) audio.play().catch(()=>{});
+        if(snd) audio.play().catch(()=>{});
     }
 
-    // 2. ФОТО (ИСПРАВЛЕНО - 100% ЗАГРУЗКА)
-    function previewFile() { document.getElementById('file-indicator').style.display = 'block'; }
+    async function addFinance() {
+        const sum = parseFloat(document.getElementById('f-sum').value);
+        const type = document.getElementById('f-type').value;
+        if(!sum) return;
+        if(!state.fin_logs) state.fin_logs = [];
+        
+        const val = type === 'exp' ? -sum : sum;
+        state.fin_logs.push({ id: Date.now(), u: me.name, val, date: new Date().toISOString() });
+        if(type==='inc') state.inc += sum; else state.exp += sum;
+        
+        document.getElementById('f-sum').value = '';
+        await sync(); render();
+    }
 
     async function sendMsg() {
-        const i = document.getElementById('chat-in'), fInput = document.getElementById('chat-file');
-        let imgUrl = null;
+        const i = document.getElementById('chat-in'); if(!i.value) return;
+        state.messages.push({ u: me.name, t: i.value, id: Date.now() });
+        i.value=''; await sync(); render();
+    }
 
-        if (fInput.files[0]) {
-            const file = fInput.files[0];
-            const fName = `${Date.now()}_img`;
-            const { data, error } = await sb.storage.from('family_photos').upload(fName, file);
-            if (!error) {
-                const { data: pub } = sb.storage.from('family_photos').getPublicUrl(fName);
-                imgUrl = pub.publicUrl;
-            }
-        }
-        if(!i.value && !imgUrl) return;
-        state.messages.push({ u: me.name, t: i.value, img: imgUrl, id: Date.now() });
-        i.value=''; fInput.value=''; document.getElementById('file-indicator').style.display='none';
-        await sync(); render();
+    async function addSticker() {
+        const i = document.getElementById('s-in'); if(!i.value) return;
+        state.stickers.unshift({ t: i.value, color: sColor, id: Date.now(), author: me.name });
+        i.value=''; await sync(); render();
     }
 
     async function inviteUser() {
@@ -211,13 +228,6 @@
         await sync();
         await sb.from('family_v10_profiles').upsert({ email, name, role: 'User' }, { onConflict: 'email' });
         alert("Пользователь создан"); render();
-    }
-
-    async function addSticker() {
-        const i = document.getElementById('s-in');
-        if(!i.value) return;
-        state.stickers.unshift({ t: i.value, color: currentColor, id: Date.now(), author: me.name });
-        i.value=''; await sync(); render();
     }
 
     async function init(session) {
@@ -243,12 +253,27 @@
         document.getElementById('v-inc').innerText = state.inc.toLocaleString();
         document.getElementById('v-exp').innerText = state.exp.toLocaleString();
 
-        // 1. Рендер ближайших планов
+        // Аналитика финансов
+        const fFilter = document.getElementById('f-filter').value;
+        const filteredFin = (state.fin_logs || []).filter(l => {
+            const d = new Date(l.date);
+            if(fFilter === 'today') return d.toDateString() === now.toDateString();
+            if(fFilter === 'month') return d.getMonth() === month && d.getFullYear() === now.getFullYear();
+            return true;
+        });
+        
+        const uStats = {};
+        (state.fin_logs || []).forEach(l => {
+            if(l.val < 0) { uStats[l.u] = (uStats[l.u] || 0) + Math.abs(l.val); }
+        });
+        document.getElementById('finance-stats').innerHTML = Object.entries(uStats).map(([n, v]) => `
+            <div class="stat-card"><div class="stat-user">${n}</div><div class="stat-val">${v.toLocaleString()}</div></div>`).join('');
+        document.getElementById('finance-history').innerHTML = filteredFin.slice().reverse().map(l => `
+            <div class="history-item"><span>${l.u}</span><b style="color:${l.val>0?'var(--green)':'var(--red)'}">${l.val>0?'+':''}${l.val}</b></div>`).join('');
+
+        // Планы
         const upcoming = state.tasks.filter(t => (t.day == today || t.day == today + 1) && t.month == month);
-        document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `
-            <div style="margin-bottom:6px">
-                <span style="color:var(--accent)">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}
-            </div>`).join('') || 'Планов нет';
+        document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `<div><span style="color:var(--accent)">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}</div>`).join('') || 'Планов нет';
 
         // Календарь
         const daysInMonth = new Date(now.getFullYear(), month + 1, 0).getDate();
@@ -257,39 +282,27 @@
         for(let i=0; i<offset; i++) cal += `<div class="day empty"></div>`;
         for(let d=1; d<=daysInMonth; d++) {
             const hasT = state.tasks.some(t => t.day == d && t.month == month);
-            cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div class="dot"></div>':''}</div>`;
+            cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasT?'<div style="position:absolute;bottom:4px;width:4px;height:4px;background:#fff;border-radius:50%"></div>':''}</div>`;
         }
         document.getElementById('cal-days').innerHTML = cal;
         document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
         document.getElementById('sel-day-txt').innerText = selDay;
 
-        // Чат
-        document.getElementById('chat-list').innerHTML = state.messages.slice(-20).map(m => `
-            <div class="msg ${m.u===me.name?'me':''}">
-                <b>${m.u}:</b><br>
-                ${m.img ? `<img src="${m.img}" class="msg-img" loading="lazy">` : ''}
-                ${m.t ? `<span>${m.t}</span>` : ''}
-            </div>`).join('');
+        // Чат и стикеры
+        document.getElementById('chat-list').innerHTML = state.messages.slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
         document.getElementById('chat-list').scrollTop = 9999;
-
-        // Стикеры
-        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `
-            <div class="sticker" style="background:${s.color}">
-                <div>${s.t}</div>
-                <div class="s-author">От: ${s.author}</div>
-                <div onclick="delS(${s.id})" style="position:absolute; top:8px; right:8px; opacity:0.3; cursor:pointer">×</div>
-            </div>`).join('');
-
-        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => t.day == selDay && t.month == month).map(t => `<div style="margin-bottom:5px">• ${t.t} <span onclick="delT(${t.id})" style="color:var(--red); cursor:pointer">×</span></div>`).join('') || 'Нет задач';
-        document.getElementById('family-list').innerHTML = (state.users || []).map(u => `<div style="font-size:12px; margin-bottom:5px">${u.name} (${u.email})</div>`).join('');
+        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `<div class="sticker" style="background:${s.color}"><div>${s.t}</div><div class="s-author">От: ${s.author}</div><div onclick="delS(${s.id})" style="position:absolute;top:8px;right:8px;opacity:0.3;cursor:pointer">×</div></div>`).join('');
+        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => t.day == selDay && t.month == month).map(t => `<div style="display:flex;justify-content:space-between;margin-top:5px"><span>• ${t.t}</span><span onclick="delT(${t.id})" style="color:var(--red);cursor:pointer">×</span></div>`).join('') || 'Нет задач';
+        document.getElementById('family-list').innerHTML = (state.users || []).map(u => `<div style="font-size:12px;margin-bottom:5px">${u.name} (${u.email})</div>`).join('');
     }
 
     function setTheme(t) { document.body.className = 'theme-'+t; localStorage.setItem('f_theme', t); }
-    function setColor(c) { currentColor = c; }
+    function setSColor(c) { sColor = c; }
     async function delT(id) { state.tasks = state.tasks.filter(t=>t.id!==id); await sync(); render(); }
     async function delS(id) { state.stickers = state.stickers.filter(s=>s.id!==id); await sync(); render(); }
     function openM(id) { document.getElementById(id).style.display = 'block'; }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
+    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
 
     sb.auth.getSession().then(({data}) => { if(data.session) init(data.session); else { document.getElementById('loader').style.display='none'; document.getElementById('auth-screen').style.display='block'; }});
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
