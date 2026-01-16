@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v25.0</title>
+    <title>FamilyHub v27.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -173,7 +173,7 @@
     async function handleAuth() {
         const e = document.getElementById('email').value, p = document.getElementById('pass').value;
         const { data, error } = await sb.auth.signInWithPassword({ email: e, password: p });
-        if(!error) init(data.session); else alert("Ошибка входа");
+        if(!error) init(data.session); else alert("Ошибка входа: " + error.message);
     }
 
     async function sync(playSnd = true) { 
@@ -181,52 +181,59 @@
         if(playSnd) audio.play().catch(()=>{});
     }
 
-    // ЛОГИКА АДМИНА: Добавление в белый список
+    // ЭТАЛОННАЯ ФУНКЦИЯ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ
     async function inviteUser() {
-        const e = document.getElementById('n-email').value.toLowerCase().trim();
-        const n = document.getElementById('n-name').value.trim();
-        if(e && n) {
+        const eInput = document.getElementById('n-email');
+        const nInput = document.getElementById('n-name');
+        const email = eInput.value.toLowerCase().trim();
+        const name = nInput.value.trim();
+
+        if(!email || !name) return alert("Заполните поля");
+
+        try {
             if(!state.users) state.users = [];
-            state.users.push({email: e, name: n, role: 'User'});
-            await sync();
+            if(state.users.find(u => u.email === email)) return alert("Уже в списке");
+
+            state.users.push({email, name, role: 'User'});
+            
+            // 1. Сохраняем в общий стейт
+            const { error: err1 } = await sb.from('family_v10_data').upsert({ id: 'main_state', payload: state });
+            
+            // 2. Резервируем профиль в БД
+            const { error: err2 } = await sb.from('family_v10_profiles').upsert([{ email, name, role: 'User' }], { onConflict: 'email' });
+
+            if(err1 || err2) throw (err1 || err2);
+
             render();
-            document.getElementById('n-email').value = ''; document.getElementById('n-name').value = '';
+            eInput.value = ''; nInput.value = '';
+            alert("Пользователь добавлен");
+        } catch (e) {
+            console.error(e);
+            alert("Ошибка базы данных. Проверьте RLS политики.");
         }
     }
 
     async function init(session) {
         if(!session) return;
-        
-        // 1. Загружаем состояние семьи
         const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', 'main_state').maybeSingle();
         if(d) state = d.payload;
 
-        // 2. Ищем профиль пользователя
         let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
         
-        // 3. Если профиля нет (первый вход)
         if(!p) {
             const email = session.user.email.toLowerCase();
-            const isFirst = !state.users || state.users.length === 0;
             const match = state.users ? state.users.find(u => u.email === email) : null;
+            const isFirst = (!state.users || state.users.length === 0);
 
             if(isFirst || match) {
                 const name = match ? match.name : email.split('@')[0];
                 const role = isFirst ? 'Admin' : 'User';
-                
-                const { data: nP } = await sb.from('family_v10_profiles').insert([{ 
-                    id: session.user.id, name, email, role 
-                }]).select().single();
-                
+                const { data: nP } = await sb.from('family_v10_profiles').upsert([{ id: session.user.id, name, email, role }], { onConflict: 'email' }).select().single();
                 p = nP;
-                if(isFirst) {
-                    state.users = [{email, name, role: 'Admin'}];
-                    await sync(false);
-                }
+                if(isFirst) { state.users = [{email, name, role: 'Admin'}]; await sync(false); }
             } else {
-                alert("Вас нет в списке семьи. Обратитесь к админу.");
-                await sb.auth.signOut();
-                return;
+                alert("Доступ запрещен. Обратитесь к админу.");
+                return forceLogout();
             }
         }
         
@@ -234,7 +241,6 @@
         if(localStorage.getItem('f_theme')) setTheme(localStorage.getItem('f_theme'));
         render();
 
-        // Подписка на обновления
         sb.channel('db').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data' }, pl => { 
             state = pl.new.payload; render(); audio.play().catch(()=>{}); 
         }).subscribe();
@@ -255,7 +261,7 @@
 
         // Календарь Пн-Вс
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay();
+        let firstDay = new Date(year, month, 1).getDay();
         const offset = firstDay === 0 ? 6 : firstDay - 1;
         const weekDays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
         
@@ -269,23 +275,59 @@
         document.getElementById('month-name').innerText = now.toLocaleString('ru', {month:'long'});
         document.getElementById('sel-day-txt').innerText = selDay;
 
-        // Списки
+        // Ближайшие планы (Исправлено)
+        const today = now.getDate();
+        const tomorrow = today + 1;
+        const upcoming = state.tasks.filter(t => (t.day == today || t.day == tomorrow) && t.month == month);
+        document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `
+            <div style="font-size:14px; margin-bottom:4px">
+                <span style="color:var(--accent); font-weight:800">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}
+            </div>
+        `).join('') || '<div style="opacity:0.5; font-size:12px">Планов нет</div>';
+
+        // Остальное
         document.getElementById('chat-list').innerHTML = state.messages.slice(-20).map(m => `<div class="msg ${m.u===me.name?'me':''}"><b>${m.u}:</b> ${m.t}</div>`).join('');
         document.getElementById('chat-list').scrollTop = 9999;
-        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => t.day == selDay && t.month == month).map(t => `<div>• ${t.t}</div>`).join('') || 'Нет дел';
-        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `<div class="sticker" style="background:${s.color}">${s.t}</div>`).join('');
-        document.getElementById('family-list').innerHTML = (state.users || []).map(u => `<div>${u.name} (${u.email})</div>`).join('');
+        document.getElementById('day-tasks').innerHTML = state.tasks.filter(t => t.day == selDay && t.month == month).map(t => `
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px">
+                <span>• ${t.t}</span>
+                <span onclick="deleteTask(${t.id})" style="opacity:0.3; cursor:pointer">×</span>
+            </div>`).join('') || 'Нет дел';
+        
+        document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `
+            <div class="sticker" style="background:${s.color}">${s.t}
+                <div onclick="deleteSticker(${s.id})" style="position:absolute; top:5px; right:5px; opacity:0.3">×</div>
+            </div>`).join('');
+        
+        document.getElementById('family-list').innerHTML = (state.users || []).map(u => `
+            <div style="font-size:12px; display:flex; justify-content:space-between; margin-bottom:4px">
+                <span>${u.name} (${u.email})</span>
+                <span onclick="removeUser('${u.email}')" style="color:var(--red); cursor:pointer">Удалить</span>
+            </div>`).join('');
     }
 
-    // Базовые функции (деньги, чат, стикеры) оставлены без изменений для стабильности
-    async function money(d) { const v = parseFloat(document.getElementById('q-amt').value); if(!v) return; d>0?state.inc+=v:state.exp+=v; state.messages.push({u:me.name, t:`💰 ${v*d}₽`}); await sync(); }
-    async function sendMsg() { const i = document.getElementById('chat-in'); if(!i.value) return; state.messages.push({u:me.name, t:i.value}); i.value=''; await sync(); }
-    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); }
-    async function addSticker() { const i = document.getElementById('s-in'); if(!i.value) return; state.stickers.unshift({t:i.value, color:currentStickerColor, id:Date.now()}); i.value=''; await sync(); }
+    // Функции удаления
+    async function deleteTask(id) { state.tasks = state.tasks.filter(t => t.id !== id); await sync(); render(); }
+    async function deleteSticker(id) { state.stickers = state.stickers.filter(s => s.id !== id); await sync(); render(); }
+    async function removeUser(email) { state.users = state.users.filter(u => u.email !== email); await sync(); render(); }
+
+    async function money(d) { const v = parseFloat(document.getElementById('q-amt').value); if(!v) return; d>0?state.inc+=v:state.exp+=v; state.messages.push({u:me.name, t:`💰 ${v*d}₽`}); await sync(); render(); }
+    async function sendMsg() { const i = document.getElementById('chat-in'); if(!i.value) return; state.messages.push({u:me.name, t:i.value}); i.value=''; await sync(); render(); }
+    async function addTask() { const i = document.getElementById('t-in'); if(!i.value) return; state.tasks.push({day:selDay, month:new Date().getMonth(), t:i.value, id:Date.now()}); i.value=''; await sync(); render(); }
+    async function addSticker() { const i = document.getElementById('s-in'); if(!i.value) return; state.stickers.unshift({t:i.value, color:currentStickerColor, id:Date.now()}); i.value=''; await sync(); render(); }
     
     function setTheme(t) { document.body.className = 'theme-'+t; localStorage.setItem('f_theme', t); }
     function openM(id) { document.getElementById(id).style.display = 'block'; }
     function closeM(id) { document.getElementById(id).style.display = 'none'; }
+
+    // Переключение цветов стикеров
+    document.querySelectorAll('.c-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.c-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentStickerColor = btn.dataset.color;
+        }
+    });
 
     sb.auth.getSession().then(({data}) => { if(data.session) init(data.session); else { document.getElementById('loader').style.display='none'; document.getElementById('auth-screen').style.display='block'; }});
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
