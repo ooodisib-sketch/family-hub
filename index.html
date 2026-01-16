@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FamilyHub v22.0</title>
+    <title>FamilyHub v23.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -35,11 +35,12 @@
         .msg.me { align-self: flex-end; background: var(--accent); color: #000; font-weight: 600; }
 
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; }
+        .cal-header { text-align: center; font-size: 10px; font-weight: 800; opacity: 0.3; padding-bottom: 5px; }
         .day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 12px; cursor: pointer; }
+        .day.empty { background: transparent; cursor: default; }
         .day.active { background: var(--accent); color: #000; font-weight: 800; }
         .dot { position: absolute; bottom: 4px; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
 
-        /* ОБНОВЛЕННЫЕ СТИКЕРЫ */
         .sticker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .sticker { padding: 12px; border-radius: 4px; font-weight: 700; font-size: 13px; min-height: 90px; position: relative; color: #000; box-shadow: 4px 4px 0 rgba(0,0,0,0.1); word-break: break-word; }
         .color-picker { display: flex; gap: 10px; margin-bottom: 10px; }
@@ -169,7 +170,6 @@
     let currentStickerColor = 'var(--yellow)';
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 
-    // Логика выбора цвета
     document.querySelectorAll('.c-btn').forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll('.c-btn').forEach(b => b.classList.remove('active'));
@@ -184,6 +184,7 @@
         const e = document.getElementById('email').value, p = document.getElementById('pass').value;
         const { data, error } = await sb.auth.signInWithPassword({ email: e, password: p });
         if(!error) init(data.session);
+        else alert('Ошибка входа: ' + error.message);
     }
 
     async function sync(playSnd = true) { 
@@ -220,9 +221,19 @@
         await sync();
     }
 
+    // ИСПРАВЛЕНО: Добавление пользователя в таблицу профайлов
     async function inviteUser() {
         const e = document.getElementById('n-email').value, n = document.getElementById('n-name').value;
-        if(e && n) { state.users.push({email: e, name: n, role: 'User'}); await sync(); render(); }
+        if(e && n) { 
+            state.users.push({email: e, name: n, role: 'User'}); 
+            // Мы не можем создать пароль за пользователя, но мы "бронируем" его email в базе профайлов
+            // Чтобы когда он залогинится, система его узнала
+            await sb.from('family_v10_profiles').upsert([{ email: e, name: n, role: 'User' }], { onConflict: 'email' });
+            await sync(); 
+            render(); 
+            document.getElementById('n-email').value = '';
+            document.getElementById('n-name').value = '';
+        }
     }
 
     function setTheme(t) { document.body.className = 'theme-' + t; localStorage.setItem('f_theme', t); }
@@ -234,7 +245,9 @@
         document.getElementById('app-screen').style.display = 'block';
 
         const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         const monthName = now.toLocaleString('ru-RU', { month: 'long' });
 
         document.getElementById('me-name').innerText = me.name;
@@ -249,32 +262,38 @@
         `).join('');
         document.getElementById('chat-list').scrollTop = document.getElementById('chat-list').scrollHeight;
 
-        // Календарь
+        // ИСПРАВЛЕНО: Календарь Пн-Вс
         document.getElementById('month-name').innerText = monthName;
-        let cal = ''; 
+        const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        let cal = weekDays.map(d => `<div class="cal-header">${d}</div>`).join('');
+        
+        let firstDay = new Date(year, month, 1).getDay(); // 0 (Вс) - 6 (Сб)
+        let offset = firstDay === 0 ? 6 : firstDay - 1; // Превращаем в Пн=0, Вс=6
+
+        for(let i=0; i<offset; i++) cal += `<div class="day empty"></div>`;
         for(let d=1; d<=daysInMonth; d++) {
-            const hasTask = state.tasks.some(t => t.day == d && t.month == now.getMonth());
+            const hasTask = state.tasks.some(t => t.day == d && t.month == month);
             cal += `<div class="day ${selDay==d?'active':''}" onclick="selDay=${d};render()">${d}${hasTask?'<div class="dot"></div>':''}</div>`;
         }
         document.getElementById('cal-days').innerHTML = cal;
         document.getElementById('sel-day-txt').innerText = selDay;
         
         document.getElementById('day-tasks').innerHTML = state.tasks
-            .filter(t => t.day == selDay && t.month == now.getMonth())
+            .filter(t => t.day == selDay && t.month == month)
             .map(t => `<div style="display:flex; justify-content:space-between; margin-bottom:5px"><span>• ${t.t}</span><span onclick="state.tasks=state.tasks.filter(x=>x.id!==${t.id});sync();render();" style="opacity:0.3">×</span></div>`)
             .join('') || 'Свободный день';
 
         // Ближайшие планы
         const today = now.getDate();
         const tomorrow = today + 1;
-        const upcoming = state.tasks.filter(t => (t.day == today || t.day == tomorrow) && t.month == now.getMonth());
+        const upcoming = state.tasks.filter(t => (t.day == today || t.day == tomorrow) && t.month == month);
         document.getElementById('upcoming-list').innerHTML = upcoming.map(t => `
             <div class="upcoming-item">
                 <span style="color:var(--accent); font-weight:800">${t.day == today ? 'СЕГОДНЯ' : 'ЗАВТРА'}:</span> ${t.t}
             </div>
         `).join('') || '<div style="font-size:12px; opacity:0.5">Дел нет</div>';
 
-        // Рендер ВСЕХ стикеров
+        // Рендер стикеров
         document.getElementById('stickers-list').innerHTML = state.stickers.map(s => `
             <div class="sticker" style="background:${s.color || 'var(--yellow)'}">
                 ${s.t}
@@ -293,18 +312,29 @@
         if(!session) return;
         const { data: d } = await sb.from('family_v10_data').select('payload').eq('id', 'main_state').maybeSingle();
         if(d) state = d.payload;
+
         let { data: p } = await sb.from('family_v10_profiles').select('*').eq('id', session.user.id).maybeSingle();
+        
+        // Если профиля по ID нет, попробуем найти по Email (созданный админом)
         if(!p) {
-            const isF = state.users.length === 0;
-            const match = state.users.find(u => u.email === session.user.email);
-            const name = match ? match.name : session.user.email.split('@')[0];
-            const { data: nP } = await sb.from('family_v10_profiles').insert([{ id: session.user.id, name, email: session.user.email, role: isF ? 'Admin' : 'User' }]).select().single();
-            p = nP;
-            if(isF) { state.users.push({email: session.user.email, name, role: 'Admin'}); await sync(false); }
+            let { data: pByEmail } = await sb.from('family_v10_profiles').select('*').eq('email', session.user.email).maybeSingle();
+            if(pByEmail) {
+                // Привязываем существующий профиль к новому Auth ID
+                const { data: updatedP } = await sb.from('family_v10_profiles').update({ id: session.user.id }).eq('email', session.user.email).select().single();
+                p = updatedP;
+            } else {
+                // Полностью новый юзер
+                const isF = state.users.length === 0;
+                const name = session.user.email.split('@')[0];
+                const { data: nP } = await sb.from('family_v10_profiles').insert([{ id: session.user.id, name, email: session.user.email, role: isF ? 'Admin' : 'User' }]).select().single();
+                p = nP;
+                if(isF) { state.users.push({email: session.user.email, name, role: 'Admin'}); await sync(false); }
+            }
         }
         me = p;
         const th = localStorage.getItem('f_theme'); if(th) setTheme(th);
         render();
+
         sb.channel('db').on('postgres_changes', { event: 'UPDATE', table: 'family_v10_data' }, pl => { 
             state = pl.new.payload; 
             render(); 
@@ -314,10 +344,15 @@
 
     sb.auth.getSession().then(({data}) => {
         if(data.session) init(data.session);
-        else document.getElementById('loader').style.display = 'none', document.getElementById('auth-screen').style.display = 'block';
+        else {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'block';
+        }
     });
 
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
+    setInterval(() => { 
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); 
+    }, 1000);
 </script>
 </body>
 </html>
